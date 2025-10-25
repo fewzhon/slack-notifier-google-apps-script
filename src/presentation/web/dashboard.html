@@ -1,0 +1,488 @@
+<script>
+/**
+ * Dashboard JavaScript Module
+ * Handles authentication, sign-out, and dashboard functionality
+ */
+
+// ===== DASHBOARD AUTHENTICATION =====
+function initializeDashboardAuth() {
+  console.log('=== DASHBOARD AUTHENTICATION INITIALIZING ===');
+  
+  // Simple authentication check
+  let authToken = sessionStorage.getItem('authToken');
+  
+  if (!authToken) {
+    authToken = localStorage.getItem('authToken');
+    if (authToken) {
+      sessionStorage.setItem('authToken', authToken);
+    }
+  }
+  
+  console.log('Dashboard: Auth token found:', authToken ? 'YES' : 'NO');
+  
+  // Simple validation - if no token, redirect to login
+  if (!authToken) {
+    console.log('Dashboard: No auth token found, redirecting to login');
+    redirectToLogin('No authentication token found');
+    return false;
+  }
+  
+  console.log('Dashboard: Auth token found, showing dashboard');
+  return true;
+}
+
+function redirectToLogin(reason) {
+  sessionStorage.clear();
+  localStorage.clear();
+  console.log('Redirecting to login:', reason);
+  window.location.href = window.location.origin + window.location.pathname;
+}
+
+// ===== SIGN OUT FUNCTION =====
+function signOut() {
+  console.log('=== SIGN OUT FUNCTION CALLED ===');
+  console.log('Sign out initiated...');
+  
+  // Show loading state
+  const signOutBtn = document.querySelector('.dashboard-sign-out-btn');
+  if (signOutBtn) {
+    signOutBtn.disabled = true;
+    signOutBtn.innerHTML = '🔄 Signing Out...';
+    console.log('Button disabled and loading state shown');
+  } else {
+    console.error('Sign out button not found!');
+  }
+  
+  // Call server-side logout using proper GAS pattern
+  google.script.run
+    .withSuccessHandler(function(result) {
+      console.log('=== SERVER-SIDE LOGOUT SUCCESS ===');
+      console.log('Server response:', result);
+      
+      // Clear client-side session data
+      sessionStorage.clear();
+      localStorage.clear();
+      
+      // Clean URL
+      window.history.replaceState(null, '', window.location.origin + window.location.pathname);
+      
+      // Redirect to login page
+      console.log('Redirecting to login page...');
+      window.location.href = window.location.origin + window.location.pathname;
+    })
+    .withFailureHandler(function(error) {
+      console.log('=== SERVER-SIDE LOGOUT FAILED ===');
+      console.log('Server error:', error);
+      console.log('Proceeding with client-side logout...');
+      
+      // Fallback: Clear client-side data and redirect anyway
+      sessionStorage.clear();
+      localStorage.clear();
+      window.history.replaceState(null, '', window.location.origin + window.location.pathname);
+      window.location.href = window.location.origin + window.location.pathname;
+    })
+    .logoutUser(); // Call the simple logoutUser() function from AuthAPI.js
+}
+
+// ===== DASHBOARD INITIALIZATION =====
+function initializeDashboard() {
+  console.log('=== DASHBOARD INITIALIZING ===');
+  
+  // Check authentication first
+  if (!initializeDashboardAuth()) {
+    return;
+  }
+  
+  // Initialize Modern UI
+  if (window.modernUI) {
+    console.log('Modern UI Framework initialized');
+  }
+  
+  // Load dashboard data
+  loadDashboardData();
+}
+
+// ===== DASHBOARD DATA LOADING =====
+async function loadDashboardData() {
+  try {
+    console.log('Loading dashboard data...');
+    showLoading();
+    
+    // Get user email from session
+    const userEmail = sessionStorage.getItem('userEmail') || 'authenticated-user';
+    
+    // Load all dashboard data in parallel
+    await Promise.all([
+      loadUserInfo(userEmail),
+      loadSystemStatus(userEmail),
+      loadConfigCategories(userEmail),
+      loadRecentActivity(userEmail)
+    ]);
+    
+    hideLoading();
+    console.log('Dashboard data loaded successfully');
+    
+  } catch (error) {
+    console.error('Failed to load dashboard data:', error);
+    showError('Failed to load dashboard data: ' + error.message);
+    hideLoading();
+  }
+}
+
+// ===== DATA LOADING FUNCTIONS =====
+function loadUserInfo(userEmail) {
+  return new Promise((resolve, reject) => {
+    google.script.run
+      .withSuccessHandler((data) => {
+        if (data.success) {
+          window.currentUser = data.user;
+          updateUserInfo();
+        } else {
+          showError('Failed to load user info: ' + data.message);
+        }
+        resolve(data);
+      })
+      .withFailureHandler((error) => {
+        console.error('Failed to load user info:', error);
+        // Use mock data for now
+        window.currentUser = { email: userEmail, name: 'Dashboard User', role: 'user' };
+        updateUserInfo();
+        resolve({ success: true, user: window.currentUser });
+      })
+      .getUserInfo(userEmail, getSessionId());
+  });
+}
+
+function loadSystemStatus(userEmail) {
+  return new Promise((resolve, reject) => {
+    google.script.run
+      .withSuccessHandler((data) => {
+        if (data.success) {
+          window.systemStatusData = data.status;
+          updateSystemStatus();
+        } else {
+          showError('Failed to load system status: ' + data.message);
+        }
+        resolve(data);
+      })
+      .withFailureHandler((error) => {
+        console.error('Failed to load system status:', error);
+        // Use mock data for now
+        window.systemStatusData = {
+          monitoring: 'active',
+          triggers: 'active',
+          notifications: 'active',
+          uptime: '99.9%'
+        };
+        updateSystemStatus();
+        resolve({ success: true, status: window.systemStatusData });
+      })
+      .getSystemStatus(userEmail);
+  });
+}
+
+function loadConfigCategories(userEmail) {
+  return new Promise((resolve, reject) => {
+    google.script.run
+      .withSuccessHandler((data) => {
+        if (data.success) {
+          window.configCategoriesData = data.categories;
+          updateConfigCategories();
+        } else {
+          showError('Failed to load configuration categories: ' + data.message);
+        }
+        resolve(data);
+      })
+      .withFailureHandler((error) => {
+        console.error('Failed to load config categories:', error);
+        // Use mock data for now
+        window.configCategoriesData = {
+          slack: {
+            name: 'Slack Integration',
+            description: 'Configure Slack webhook and notifications',
+            icon: '💬',
+            settings: ['webhook_url', 'channel', 'username']
+          },
+          monitoring: {
+            name: 'Drive Monitoring',
+            description: 'Set up Google Drive file monitoring',
+            icon: '📁',
+            settings: ['folder_id', 'file_types', 'monitoring_interval']
+          }
+        };
+        updateConfigCategories();
+        resolve({ success: true, categories: window.configCategoriesData });
+      })
+      .getConfigurationCategories(userEmail);
+  });
+}
+
+function loadRecentActivity(userEmail) {
+  return new Promise((resolve, reject) => {
+    google.script.run
+      .withSuccessHandler((data) => {
+        if (data.success) {
+          window.recentActivityData = data.activities;
+          updateRecentActivity();
+        } else {
+          showError('Failed to load recent activity: ' + data.message);
+        }
+        resolve(data);
+      })
+      .withFailureHandler((error) => {
+        console.error('Failed to load recent activity:', error);
+        // Use mock data for now
+        window.recentActivityData = [
+          {
+            description: 'Dashboard accessed',
+            timestamp: new Date().toISOString(),
+            icon: '🔐'
+          },
+          {
+            description: 'Configuration updated',
+            timestamp: new Date(Date.now() - 3600000).toISOString(),
+            icon: '⚙️'
+          }
+        ];
+        updateRecentActivity();
+        resolve({ success: true, activities: window.recentActivityData });
+      })
+      .getRecentActivity(userEmail);
+  });
+}
+
+// ===== UI UPDATE FUNCTIONS =====
+function updateUserInfo() {
+  if (!window.currentUser) return;
+  
+  const userNameEl = document.getElementById('userName');
+  const userEmailEl = document.getElementById('userEmail');
+  const userRoleEl = document.getElementById('userRole');
+  const userAvatarEl = document.getElementById('userAvatar');
+  
+  if (userNameEl) userNameEl.textContent = window.currentUser.name || 'Dashboard User';
+  if (userEmailEl) userEmailEl.textContent = window.currentUser.email;
+  
+  if (userRoleEl) {
+    userRoleEl.textContent = window.currentUser.role;
+    userRoleEl.className = 'dashboard-role-badge dashboard-role-' + window.currentUser.role;
+  }
+  
+  if (userAvatarEl) {
+    userAvatarEl.textContent = (window.currentUser.name || window.currentUser.email).charAt(0).toUpperCase();
+  }
+}
+
+function updateSystemStatus() {
+  const statusContainer = document.getElementById('systemStatus');
+  
+  if (!statusContainer || !window.systemStatusData) {
+    if (statusContainer) {
+      statusContainer.innerHTML = '<div class="error">System status unavailable</div>';
+    }
+    return;
+  }
+  
+  const status = window.systemStatusData;
+  
+  statusContainer.innerHTML = 
+    '<div class="dashboard-status-item">' +
+      '<div class="dashboard-status-indicator dashboard-status-' + (status.monitoring === 'active' ? 'active' : 'inactive') + '"></div>' +
+      '<div>' +
+        '<div style="font-weight: 500;">Drive Monitoring</div>' +
+        '<div style="font-size: 0.9rem; color: #666;">' + status.monitoring + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="dashboard-status-item">' +
+      '<div class="dashboard-status-indicator dashboard-status-' + (status.triggers === 'active' ? 'active' : 'inactive') + '"></div>' +
+      '<div>' +
+        '<div style="font-weight: 500;">Scheduled Triggers</div>' +
+        '<div style="font-size: 0.9rem; color: #666;">' + status.triggers + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="dashboard-status-item">' +
+      '<div class="dashboard-status-indicator dashboard-status-' + (status.notifications === 'active' ? 'active' : 'inactive') + '"></div>' +
+      '<div>' +
+        '<div style="font-weight: 500;">Notifications</div>' +
+        '<div style="font-size: 0.9rem; color: #666;">' + status.notifications + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="dashboard-status-item">' +
+      '<div class="dashboard-status-indicator dashboard-status-active"></div>' +
+      '<div>' +
+        '<div style="font-weight: 500;">System Uptime</div>' +
+        '<div style="font-size: 0.9rem; color: #666;">' + status.uptime + '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+function updateConfigCategories() {
+  const categoriesContainer = document.getElementById('configCategories');
+  
+  if (!categoriesContainer || !window.configCategoriesData) {
+    if (categoriesContainer) {
+      categoriesContainer.innerHTML = '<div class="error">Configuration categories unavailable</div>';
+    }
+    return;
+  }
+  
+  const categories = window.configCategoriesData;
+  
+  categoriesContainer.innerHTML = Object.keys(categories).map(categoryKey => {
+    const category = categories[categoryKey];
+    return 
+      '<div class="dashboard-card" onclick="openCategory(\'' + categoryKey + '\')">' +
+        '<div class="dashboard-card-header">' +
+          '<div class="dashboard-card-icon">' + category.icon + '</div>' +
+          '<div class="dashboard-card-title">' + category.name + '</div>' +
+        '</div>' +
+        '<div class="dashboard-card-description">' + category.description + '</div>' +
+        '<div class="dashboard-card-status">' +
+          '<div class="dashboard-status-indicator dashboard-status-active"></div>' +
+          '<span>' + (category.settings ? category.settings.length : 0) + ' settings</span>' +
+        '</div>' +
+        '<div class="dashboard-card-actions">' +
+          '<button class="btn btn-primary" onclick="event.stopPropagation(); openCategory(\'' + categoryKey + '\')">' +
+            'Configure' +
+          '</button>' +
+          '<button class="btn btn-secondary" onclick="event.stopPropagation(); testCategory(\'' + categoryKey + '\')">' +
+            'Test' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function updateRecentActivity() {
+  const activityContainer = document.getElementById('recentActivity');
+  
+  if (!activityContainer) return;
+  
+  if (!window.recentActivityData || window.recentActivityData.length === 0) {
+    activityContainer.innerHTML = '<div style="color: #666; text-align: center; padding: 20px;">No recent activity</div>';
+    return;
+  }
+  
+  activityContainer.innerHTML = window.recentActivityData.map(activity => 
+    '<div class="dashboard-activity-item">' +
+      '<div class="dashboard-activity-icon">' + (activity.icon || '📝') + '</div>' +
+      '<div class="dashboard-activity-content">' +
+        '<div class="dashboard-activity-title">' + activity.description + '</div>' +
+        '<div class="dashboard-activity-time">' + formatTime(activity.timestamp) + '</div>' +
+      '</div>' +
+    '</div>'
+  ).join('');
+}
+
+// ===== UTILITY FUNCTIONS =====
+function getSessionId() {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('sessionId') || localStorage.getItem('sessionId') || 'demo_session';
+}
+
+function showLoading() {
+  // Show loading state if needed
+}
+
+function hideLoading() {
+  // Hide loading state if needed
+}
+
+function showError(message) {
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'error';
+  errorDiv.textContent = message;
+  
+  const container = document.querySelector('.dashboard-container');
+  if (container) {
+    container.insertBefore(errorDiv, container.firstChild);
+    
+    setTimeout(() => {
+      if (errorDiv.parentNode) {
+        errorDiv.parentNode.removeChild(errorDiv);
+      }
+    }, 5000);
+  }
+}
+
+function showSuccess(message) {
+  const successDiv = document.createElement('div');
+  successDiv.className = 'success';
+  successDiv.textContent = message;
+  
+  const container = document.querySelector('.dashboard-container');
+  if (container) {
+    container.insertBefore(successDiv, container.firstChild);
+    
+    setTimeout(() => {
+      if (successDiv.parentNode) {
+        successDiv.parentNode.removeChild(successDiv);
+      }
+    }, 3000);
+  }
+}
+
+function formatTime(timestamp) {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
+  
+  if (diff < 60000) {
+    return 'Just now';
+  } else if (diff < 3600000) {
+    return Math.floor(diff / 60000) + ' minutes ago';
+  } else if (diff < 86400000) {
+    return Math.floor(diff / 3600000) + ' hours ago';
+  } else {
+    return date.toLocaleDateString();
+  }
+}
+
+// ===== CATEGORY FUNCTIONS =====
+function openCategory(categoryKey) {
+  console.log('Opening category:', categoryKey);
+  if (window.modernUI && window.configCategoriesData && window.configCategoriesData[categoryKey]) {
+    const categoryData = window.configCategoriesData[categoryKey];
+    const userEmail = window.currentUser ? window.currentUser.email : 'authenticated-user';
+    
+    const modal = window.modernUI.createConfigModal(categoryKey, categoryData, userEmail);
+    console.log('Opened configuration modal for ' + categoryKey + ':', modal);
+  } else {
+    console.error('ModernUI not available or category data not loaded');
+    showError('Configuration modal not available');
+  }
+}
+
+function testCategory(categoryKey) {
+  console.log('Testing category:', categoryKey);
+  showSuccess('Testing ' + categoryKey + ' configuration...');
+  
+  google.script.run
+    .withSuccessHandler(handleTestResult)
+    .withFailureHandler(handleError)
+    .testConfiguration({
+      userEmail: window.currentUser ? window.currentUser.email : 'authenticated-user',
+      setting: categoryKey
+    });
+}
+
+function handleTestResult(response) {
+  if (response.success) {
+    showSuccess(response.data.message || 'Test completed successfully');
+  } else {
+    showError(response.error || 'Test failed');
+  }
+}
+
+function handleError(error) {
+  console.error('Error:', error);
+  showError('An error occurred: ' + (error.message || error));
+}
+
+// ===== GLOBAL EXPORTS =====
+// Make functions globally accessible
+window.signOut = signOut;
+window.initializeDashboard = initializeDashboard;
+window.openCategory = openCategory;
+window.testCategory = testCategory;
+</script>

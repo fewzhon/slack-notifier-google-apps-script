@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAppService Test Page</title>
+    
+    <!-- Include Modern UI CSS Framework -->
+    <?!= includeAsset("modern-ui-css") ?>
+    
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-result {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .test-success {
+            background: rgba(76, 175, 80, 0.1);
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .test-error {
+            background: rgba(244, 67, 54, 0.1);
+            color: #d32f2f;
+            border-left: 4px solid #f44336;
+        }
+        
+        .test-info {
+            background: rgba(33, 150, 243, 0.1);
+            color: #1976d2;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .test-button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .test-button:hover {
+            background: #5855eb;
+            transform: translateY(-1px);
+        }
+        
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-section">
+            <h1>🧪 WebAppService Communication Test</h1>
+            <p>This page tests the communication between WebAppService.js and the client-side.</p>
+            
+            <div>
+                <button class="test-button" onclick="testAssetLoading()">Test Asset Loading</button>
+                <button class="test-button" onclick="testServerFunctions()">Test Server Functions</button>
+                <button class="test-button" onclick="testSignOut()">Test Sign Out</button>
+                <button class="test-button" onclick="runAllTests()">Run All Tests</button>
+                <button class="test-button" onclick="clearResults()">Clear Results</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📊 Test Results</h2>
+            <div id="testResults">
+                <div class="test-info">Click a test button above to see results...</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔍 Debug Information</h2>
+            <div id="debugInfo">
+                <div class="test-info">Debug information will appear here...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Dashboard JavaScript Module -->
+    <?!= includeAsset('dashboard') ?>
+    
+    <!-- Include Modern UI JavaScript Framework -->
+    <?!= includeAsset('modern-ui-js') ?>
+    
+    <script>
+        console.log('=== TEST PAGE LOADING ===');
+        
+        // Test functions
+        function addTestResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result test-${type}`;
+            resultDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultsDiv.appendChild(resultDiv);
+            console.log(`[TEST ${type.toUpperCase()}] ${message}`);
+        }
+        
+        function addDebugInfo(message) {
+            const debugDiv = document.getElementById('debugInfo');
+            const debugItem = document.createElement('div');
+            debugItem.className = 'test-result test-info';
+            debugItem.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            debugDiv.appendChild(debugItem);
+            console.log(`[DEBUG] ${message}`);
+        }
+        
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('debugInfo').innerHTML = '';
+            addTestResult('Results cleared', 'info');
+        }
+        
+        // Test 1: Asset Loading
+        function testAssetLoading() {
+            addTestResult('Testing asset loading...', 'info');
+            
+            // Check if CSS is loaded
+            const hasModernUICSS = document.querySelector('style') && 
+                                 document.querySelector('style').textContent.includes('dashboard-container');
+            addTestResult(`Modern UI CSS loaded: ${hasModernUICSS ? 'YES' : 'NO'}`, 
+                         hasModernUICSS ? 'success' : 'error');
+            
+            // Check if JavaScript functions are available
+            const hasSignOutFunction = typeof window.signOut === 'function';
+            addTestResult(`SignOut function available: ${hasSignOutFunction ? 'YES' : 'NO'}`, 
+                         hasSignOutFunction ? 'success' : 'error');
+            
+            const hasInitializeDashboard = typeof window.initializeDashboard === 'function';
+            addTestResult(`InitializeDashboard function available: ${hasInitializeDashboard ? 'YES' : 'NO'}`, 
+                         hasInitializeDashboard ? 'success' : 'error');
+            
+            // Check if Modern UI is loaded
+            const hasModernUI = typeof window.modernUI === 'object';
+            addTestResult(`Modern UI Framework loaded: ${hasModernUI ? 'YES' : 'NO'}`, 
+                         hasModernUI ? 'success' : 'error');
+            
+            addTestResult('Asset loading test complete', 'info');
+        }
+        
+        // Test 2: Server Functions
+        function testServerFunctions() {
+            addTestResult('Testing server function communication...', 'info');
+            
+            // Test logoutUser function
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                addTestResult('google.script.run is available', 'success');
+                
+                // Test logoutUser
+                google.script.run
+                    .withSuccessHandler(function(result) {
+                        addTestResult(`logoutUser() call successful: ${JSON.stringify(result)}`, 'success');
+                    })
+                    .withFailureHandler(function(error) {
+                        addTestResult(`logoutUser() call failed: ${error}`, 'error');
+                    })
+                    .logoutUser();
+            } else {
+                addTestResult('google.script.run is NOT available', 'error');
+            }
+        }
+        
+        // Test 3: Sign Out Function
+        function testSignOut() {
+            addTestResult('Testing signOut function...', 'info');
+            
+            if (typeof window.signOut === 'function') {
+                try {
+                    // Don't actually sign out, just test the function exists
+                    addTestResult('signOut function exists and is callable', 'success');
+                    
+                    // Test button element
+                    const signOutBtn = document.querySelector('.dashboard-sign-out-btn');
+                    if (signOutBtn) {
+                        addTestResult('Sign-out button found in DOM', 'success');
+                    } else {
+                        addTestResult('Sign-out button NOT found in DOM', 'error');
+                    }
+                    
+                } catch (error) {
+                    addTestResult(`signOut function error: ${error.message}`, 'error');
+                }
+            } else {
+                addTestResult('signOut function is NOT available', 'error');
+            }
+        }
+        
+        // Run all tests
+        function runAllTests() {
+            addTestResult('Running all tests...', 'info');
+            testAssetLoading();
+            setTimeout(() => testServerFunctions(), 1000);
+            setTimeout(() => testSignOut(), 2000);
+            setTimeout(() => {
+                addTestResult('All tests completed!', 'success');
+            }, 3000);
+        }
+        
+        // Initialize debug info
+        document.addEventListener('DOMContentLoaded', function() {
+            addDebugInfo('Page loaded successfully');
+            addDebugInfo(`User Agent: ${navigator.userAgent}`);
+            addDebugInfo(`Current URL: ${window.location.href}`);
+            addDebugInfo(`Document ready state: ${document.readyState}`);
+            
+            // Check for common issues
+            if (!window.google) {
+                addDebugInfo('WARNING: google object not found - this may indicate Apps Script context issues');
+            }
+            
+            if (!window.google?.script?.run) {
+                addDebugInfo('WARNING: google.script.run not available - server communication may fail');
+            }
+        });
+    </script>
+</body>
+</html>

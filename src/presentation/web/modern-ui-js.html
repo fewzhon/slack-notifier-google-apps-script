@@ -1,0 +1,1410 @@
+<script>
+/**
+ * Modern UI Framework - Interactive Components
+ * Provides modern JavaScript functionality for the UI components
+ */
+
+class ModernUI {
+  constructor() {
+    this.theme = this.getStoredTheme() || 'light';
+    this.toasts = [];
+    this.modals = [];
+    this.init();
+  }
+
+  /**
+   * Initialize the UI framework
+   */
+  init() {
+    this.setupTheme();
+    this.setupEventListeners();
+    this.setupToastContainer();
+    this.setupModals();
+    this.setupFormValidation();
+    this.setupAccessibility();
+  }
+
+  /**
+   * Setup theme system
+   */
+  setupTheme() {
+    document.documentElement.setAttribute('data-theme', this.theme);
+    this.updateThemeToggle();
+  }
+
+  /**
+   * Get stored theme from localStorage
+   */
+  getStoredTheme() {
+    return localStorage.getItem('ui-theme');
+  }
+
+  /**
+   * Store theme in localStorage
+   */
+  storeTheme(theme) {
+    localStorage.setItem('ui-theme', theme);
+  }
+
+  /**
+   * Toggle between light and dark theme
+   */
+  toggleTheme() {
+    this.theme = this.theme === 'light' ? 'dark' : 'light';
+    this.setupTheme();
+    this.storeTheme(this.theme);
+  }
+
+  /**
+   * Update theme toggle button
+   */
+  updateThemeToggle() {
+    const themeToggle = document.querySelector('[data-theme-toggle]');
+    if (themeToggle) {
+      const icon = themeToggle.querySelector('i, svg');
+      if (icon) {
+        icon.textContent = this.theme === 'light' ? '🌙' : '☀️';
+      }
+    }
+  }
+
+  /**
+   * Setup global event listeners
+   */
+  setupEventListeners() {
+    // Theme toggle
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-theme-toggle]')) {
+        e.preventDefault();
+        this.toggleTheme();
+      }
+    });
+
+    // Modal backdrop clicks
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal-backdrop')) {
+        this.closeModal(e.target.dataset.modal);
+      }
+    });
+
+    // ESC key for modals
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeAllModals();
+      }
+    });
+
+    // Form submissions
+    document.addEventListener('submit', (e) => {
+      if (e.target.classList.contains('needs-validation')) {
+        e.preventDefault();
+        this.validateForm(e.target);
+      }
+    });
+  }
+
+  /**
+   * Setup toast notification container
+   */
+  setupToastContainer() {
+    if (!document.querySelector('.toast-container')) {
+      const container = document.createElement('div');
+      container.className = 'toast-container';
+      document.body.appendChild(container);
+    }
+  }
+
+  /**
+   * Show toast notification
+   */
+  showToast(message, type = 'info', duration = 5000) {
+    const container = document.querySelector('.toast-container');
+    const toast = document.createElement('div');
+    const toastId = `toast-${Date.now()}`;
+    
+    toast.className = `toast toast-${type}`;
+    toast.id = toastId;
+    toast.innerHTML = `
+      <div class="toast-header">
+        <div class="toast-title">${this.getToastTitle(type)}</div>
+        <button class="toast-close" data-toast-close="${toastId}">×</button>
+      </div>
+      <div class="toast-body">${message}</div>
+    `;
+
+    container.appendChild(toast);
+    this.toasts.push(toastId);
+
+    // Show toast
+    setTimeout(() => toast.classList.add('show'), 100);
+
+    // Auto remove
+    setTimeout(() => this.removeToast(toastId), duration);
+
+    // Close button
+    toast.querySelector(`[data-toast-close="${toastId}"]`).addEventListener('click', () => {
+      this.removeToast(toastId);
+    });
+
+    return toastId;
+  }
+
+  /**
+   * Remove toast notification
+   */
+  removeToast(toastId) {
+    const toast = document.getElementById(toastId);
+    if (toast) {
+      toast.classList.remove('show');
+      setTimeout(() => {
+        toast.remove();
+        this.toasts = this.toasts.filter(id => id !== toastId);
+      }, 250);
+    }
+  }
+
+  /**
+   * Get toast title based on type
+   */
+  getToastTitle(type) {
+    const titles = {
+      success: 'Success',
+      warning: 'Warning',
+      error: 'Error',
+      info: 'Information'
+    };
+    return titles[type] || 'Notification';
+  }
+
+  /**
+   * Setup modal system
+   */
+  setupModals() {
+    // Auto-setup existing modals
+    document.querySelectorAll('.modal').forEach(modal => {
+      this.setupModal(modal);
+    });
+  }
+
+  /**
+   * Setup individual modal
+   */
+  setupModal(modal) {
+    const modalId = modal.id || `modal-${Date.now()}`;
+    modal.id = modalId;
+    
+    // Close button
+    const closeBtn = modal.querySelector('.modal-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => this.closeModal(modalId));
+    }
+
+    this.modals.push(modalId);
+  }
+
+  /**
+   * Show modal
+   */
+  showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    // Create backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.dataset.modal = modalId;
+    
+    document.body.appendChild(backdrop);
+    document.body.classList.add('modal-open');
+
+    // Show modal
+    setTimeout(() => {
+      backdrop.classList.add('show');
+      modal.classList.add('show');
+    }, 10);
+
+    // Focus first input
+    const firstInput = modal.querySelector('input, textarea, select, button');
+    if (firstInput) {
+      setTimeout(() => firstInput.focus(), 100);
+    }
+  }
+
+  /**
+   * Close modal
+   */
+  closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    const backdrop = document.querySelector(`[data-modal="${modalId}"]`);
+    
+    if (!modal) return;
+
+    modal.classList.remove('show');
+    if (backdrop) {
+      backdrop.classList.remove('show');
+      setTimeout(() => backdrop.remove(), 250);
+    }
+
+    document.body.classList.remove('modal-open');
+  }
+
+  /**
+   * Close all modals
+   */
+  closeAllModals() {
+    this.modals.forEach(modalId => this.closeModal(modalId));
+  }
+
+  /**
+   * Setup form validation
+   */
+  setupFormValidation() {
+    // Real-time validation
+    document.addEventListener('input', (e) => {
+      if (e.target.matches('.form-input, .form-textarea, .form-select')) {
+        this.validateField(e.target);
+      }
+    });
+  }
+
+  /**
+   * Validate form
+   */
+  validateForm(form) {
+    const fields = form.querySelectorAll('.form-input, .form-textarea, .form-select');
+    let isValid = true;
+
+    fields.forEach(field => {
+      if (!this.validateField(field)) {
+        isValid = false;
+      }
+    });
+
+    if (isValid) {
+      this.showToast('Form submitted successfully!', 'success');
+      // Submit form data
+      this.submitForm(form);
+    } else {
+      this.showToast('Please fix the errors before submitting.', 'error');
+    }
+
+    return isValid;
+  }
+
+  /**
+   * Validate individual field
+   */
+  validateField(field) {
+    const value = field.value.trim();
+    const rules = this.getValidationRules(field);
+    let isValid = true;
+    let errorMessage = '';
+
+    // Required validation
+    if (rules.required && !value) {
+      isValid = false;
+      errorMessage = 'This field is required.';
+    }
+
+    // Email validation
+    if (rules.email && value && !this.isValidEmail(value)) {
+      isValid = false;
+      errorMessage = 'Please enter a valid email address.';
+    }
+
+    // Min length validation
+    if (rules.minLength && value.length < rules.minLength) {
+      isValid = false;
+      errorMessage = `Minimum ${rules.minLength} characters required.`;
+    }
+
+    // Max length validation
+    if (rules.maxLength && value.length > rules.maxLength) {
+      isValid = false;
+      errorMessage = `Maximum ${rules.maxLength} characters allowed.`;
+    }
+
+    // Pattern validation
+    if (rules.pattern && value && !rules.pattern.test(value)) {
+      isValid = false;
+      errorMessage = rules.patternMessage || 'Invalid format.';
+    }
+
+    // Update field state
+    this.updateFieldState(field, isValid, errorMessage);
+
+    return isValid;
+  }
+
+  /**
+   * Get validation rules for field
+   */
+  getValidationRules(field) {
+    return {
+      required: field.hasAttribute('required'),
+      email: field.type === 'email',
+      minLength: parseInt(field.dataset.minLength) || null,
+      maxLength: parseInt(field.dataset.maxLength) || null,
+      pattern: field.dataset.pattern ? new RegExp(field.dataset.pattern) : null,
+      patternMessage: field.dataset.patternMessage || null
+    };
+  }
+
+  /**
+   * Update field validation state
+   */
+  updateFieldState(field, isValid, errorMessage) {
+    const formGroup = field.closest('.form-group');
+    if (!formGroup) return;
+
+    // Remove existing error
+    const existingError = formGroup.querySelector('.form-error');
+    if (existingError) {
+      existingError.remove();
+    }
+
+    // Update field classes
+    field.classList.remove('is-valid', 'is-invalid');
+    field.classList.add(isValid ? 'is-valid' : 'is-invalid');
+
+    // Add error message
+    if (!isValid && errorMessage) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'form-error';
+      errorDiv.textContent = errorMessage;
+      formGroup.appendChild(errorDiv);
+    }
+  }
+
+  /**
+   * Validate email format
+   */
+  isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  /**
+   * Submit form data
+   */
+  async submitForm(form) {
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+      // Show loading state
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn?.textContent;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="loading"></span> Submitting...';
+      }
+
+      // Simulate API call (replace with actual API call)
+      await this.simulateApiCall(data);
+
+      // Success
+      this.showToast('Form submitted successfully!', 'success');
+      form.reset();
+
+    } catch (error) {
+      // Error
+      this.showToast('Failed to submit form. Please try again.', 'error');
+    } finally {
+      // Reset button
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    }
+  }
+
+  /**
+   * Simulate API call
+   */
+  async simulateApiCall(data) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        // Simulate random success/failure
+        if (Math.random() > 0.1) {
+          resolve(data);
+        } else {
+          reject(new Error('Simulated API error'));
+        }
+      }, 2000);
+    });
+  }
+
+  /**
+   * Setup accessibility features
+   */
+  setupAccessibility() {
+    // Skip links
+    this.createSkipLinks();
+    
+    // Focus management
+    this.setupFocusManagement();
+    
+    // ARIA labels
+    this.setupAriaLabels();
+  }
+
+  /**
+   * Create skip links for keyboard navigation
+   */
+  createSkipLinks() {
+    const skipLink = document.createElement('a');
+    skipLink.href = '#main-content';
+    skipLink.textContent = 'Skip to main content';
+    skipLink.className = 'sr-only focus-visible';
+    skipLink.style.cssText = `
+      position: absolute;
+      top: -40px;
+      left: 6px;
+      background: var(--primary-color);
+      color: white;
+      padding: 8px;
+      text-decoration: none;
+      border-radius: 4px;
+      z-index: 1000;
+    `;
+    
+    skipLink.addEventListener('focus', () => {
+      skipLink.style.top = '6px';
+    });
+    
+    skipLink.addEventListener('blur', () => {
+      skipLink.style.top = '-40px';
+    });
+
+    document.body.insertBefore(skipLink, document.body.firstChild);
+  }
+
+  /**
+   * Setup focus management
+   */
+  setupFocusManagement() {
+    // Trap focus in modals
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        const activeModal = document.querySelector('.modal.show');
+        if (activeModal) {
+          this.trapFocus(e, activeModal);
+        }
+      }
+    });
+  }
+
+  /**
+   * Trap focus within modal
+   */
+  trapFocus(e, modal) {
+    const focusableElements = modal.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (e.shiftKey) {
+      if (document.activeElement === firstElement) {
+        lastElement.focus();
+        e.preventDefault();
+      }
+    } else {
+      if (document.activeElement === lastElement) {
+        firstElement.focus();
+        e.preventDefault();
+      }
+    }
+  }
+
+  /**
+   * Setup ARIA labels and roles
+   */
+  setupAriaLabels() {
+    // Add ARIA labels to buttons without text
+    document.querySelectorAll('button:not([aria-label]):empty').forEach(button => {
+      const icon = button.querySelector('i, svg');
+      if (icon) {
+        button.setAttribute('aria-label', icon.textContent || 'Button');
+      }
+    });
+
+    // Add role to status indicators
+    document.querySelectorAll('.status').forEach(status => {
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+    });
+  }
+
+  /**
+   * Show loading state
+   */
+  showLoading(element) {
+    if (typeof element === 'string') {
+      element = document.querySelector(element);
+    }
+    
+    if (element) {
+      element.classList.add('loading');
+      element.disabled = true;
+    }
+  }
+
+  /**
+   * Hide loading state
+   */
+  hideLoading(element) {
+    if (typeof element === 'string') {
+      element = document.querySelector(element);
+    }
+    
+    if (element) {
+      element.classList.remove('loading');
+      element.disabled = false;
+    }
+  }
+
+  /**
+   * Create skeleton loading
+   */
+  createSkeleton(width = '100%', height = '1rem') {
+    const skeleton = document.createElement('div');
+    skeleton.className = 'skeleton';
+    skeleton.style.width = width;
+    skeleton.style.height = height;
+    return skeleton;
+  }
+
+  /**
+   * Animate element
+   */
+  animate(element, animation, duration = 300) {
+    if (typeof element === 'string') {
+      element = document.querySelector(element);
+    }
+    
+    if (!element) return;
+
+    element.style.animation = `${animation} ${duration}ms ease-in-out`;
+    
+    setTimeout(() => {
+      element.style.animation = '';
+    }, duration);
+  }
+
+  /**
+   * Smooth scroll to element
+   */
+  scrollTo(element, offset = 0) {
+    if (typeof element === 'string') {
+      element = document.querySelector(element);
+    }
+    
+    if (!element) return;
+
+    const elementPosition = element.offsetTop - offset;
+    window.scrollTo({
+      top: elementPosition,
+      behavior: 'smooth'
+    });
+  }
+
+  /**
+   * Get element by data attribute
+   */
+  getElementByData(dataAttribute, value) {
+    return document.querySelector(`[data-${dataAttribute}="${value}"]`);
+  }
+
+  /**
+   * Get all elements by data attribute
+   */
+  getElementsByData(dataAttribute, value) {
+    return document.querySelectorAll(`[data-${dataAttribute}="${value}"]`);
+  }
+
+  // ========================================
+  // ADVANCED MODAL SYSTEM
+  // ========================================
+
+  /**
+   * Create a configuration modal
+   * @param {string} categoryKey - Configuration category key
+   * @param {Object} categoryData - Category data
+   * @param {string} userEmail - User email
+   * @returns {Object} Modal configuration
+   */
+   createConfigModal(categoryKey, categoryData, userEmail) {
+    const modalId = `config-modal-${categoryKey}`;
+    
+    // Remove existing modal if it exists
+    this.closeModal(modalId);
+    
+    // Create modal HTML
+    const modalHTML = this.generateModalHTML(categoryKey, categoryData);
+    
+    // Create modal element
+    const modalElement = document.createElement('div');
+    modalElement.id = modalId;
+    modalElement.className = 'modal large';
+    modalElement.innerHTML = modalHTML;
+    
+    // Create backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.id = `backdrop-${modalId}`;
+    
+    // Add to DOM
+    document.body.appendChild(backdrop);
+    document.body.appendChild(modalElement);
+    
+    // Setup modal handlers
+    this.setupModalHandlers(modalId, categoryKey, userEmail);
+    
+    // Show modal
+    this.showModal(modalId);
+    
+    return {
+      id: modalId,
+      element: modalElement,
+      backdrop: backdrop,
+      categoryKey: categoryKey,
+      userEmail: userEmail
+    };
+  }
+
+  /**
+   * Generate modal HTML
+   * @param {string} categoryKey - Category key
+   * @param {Object} categoryData - Category data
+   * @returns {string} Modal HTML
+   */
+  generateModalHTML(categoryKey, categoryData) {
+    const formFields = this.getFormFields(categoryKey);
+    
+    return `
+      <div class="modal-content-wrapper">
+        <div class="modal-header">
+          <div class="modal-icon">${categoryData.icon || '⚙️'}</div>
+          <div class="modal-title-section">
+            <h2 class="modal-title">${categoryData.name || categoryKey}</h2>
+            <p class="modal-subtitle">${categoryData.description || ''}</p>
+          </div>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-container">
+            ${this.generateFormHTML(formFields, categoryKey)}
+          </div>
+          
+          <div class="form-status">
+            <div class="status-indicators">
+              <span class="status-item" id="dirty-status-${categoryKey}">
+                <span class="status-icon">●</span>
+                <span class="status-text">No changes</span>
+              </span>
+              <span class="status-item" id="valid-status-${categoryKey}">
+                <span class="status-icon">✓</span>
+                <span class="status-text">Valid</span>
+              </span>
+              <span class="status-item" id="save-status-${categoryKey}">
+                <span class="status-icon">💾</span>
+                <span class="status-text">Auto-save enabled</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <div class="footer-left">
+            <button type="button" class="btn btn-secondary" data-action="reset">
+              <span class="btn-icon">🔄</span>
+              Reset
+            </button>
+            <button type="button" class="btn btn-secondary" data-action="preview">
+              <span class="btn-icon">👁️</span>
+              Preview
+            </button>
+          </div>
+          
+          <div class="footer-right">
+            <button type="button" class="btn btn-secondary" data-action="cancel">
+              Cancel
+            </button>
+            <button type="button" class="btn btn-primary" data-action="save" disabled>
+              <span class="btn-icon">💾</span>
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Generate form HTML
+   * @param {Array} formFields - Form fields configuration
+   * @param {string} categoryKey - Category key
+   * @returns {string} Form HTML
+   */
+  generateFormHTML(formFields, categoryKey) {
+    return formFields.map(field => {
+      const fieldId = `${categoryKey}-${field.key}`;
+      const fieldHTML = this.generateFieldHTML(field, fieldId, categoryKey);
+      
+      return `
+        <div class="form-field" data-field="${field.key}">
+          <div class="field-header">
+            <label for="${fieldId}" class="field-label">
+              ${field.label}
+              ${field.required ? '<span class="required">*</span>' : ''}
+            </label>
+            ${field.description ? `<div class="field-description">${field.description}</div>` : ''}
+          </div>
+          
+          <div class="field-input">
+            ${fieldHTML}
+          </div>
+          
+          <div class="field-feedback">
+            <div class="field-error" id="error-${fieldId}" style="display: none;"></div>
+            <div class="field-warning" id="warning-${fieldId}" style="display: none;"></div>
+            <div class="field-help" id="help-${fieldId}" style="display: none;"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /**
+   * Generate field HTML based on type
+   * @param {Object} field - Field configuration
+   * @param {string} fieldId - Field ID
+   * @param {string} categoryKey - Category key
+   * @returns {string} Field HTML
+   */
+  generateFieldHTML(field, fieldId, categoryKey) {
+    const baseAttributes = `
+      id="${fieldId}"
+      name="${field.key}"
+      data-category="${categoryKey}"
+      data-field="${field.key}"
+      ${field.required ? 'required' : ''}
+      ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}
+    `;
+    
+    switch (field.type) {
+      case 'text':
+        return `<input type="text" ${baseAttributes} class="form-input" />`;
+        
+      case 'number':
+        return `
+          <input type="number" ${baseAttributes} 
+                 class="form-input" 
+                 min="${field.min || ''}" 
+                 max="${field.max || ''}" 
+                 step="${field.step || ''}" />
+        `;
+        
+      case 'email':
+        return `<input type="email" ${baseAttributes} class="form-input" />`;
+        
+      case 'url':
+        return `<input type="url" ${baseAttributes} class="form-input" />`;
+        
+      case 'time':
+        return `<input type="time" ${baseAttributes} class="form-input" />`;
+        
+      case 'checkbox':
+        return `
+          <label class="checkbox-label">
+            <input type="checkbox" ${baseAttributes} class="form-checkbox" />
+            <span class="checkbox-text">${field.label}</span>
+          </label>
+        `;
+        
+      case 'select':
+        const options = field.options.map(option => 
+          `<option value="${option.value}">${option.label}</option>`
+        ).join('');
+        return `
+          <select ${baseAttributes} class="form-select">
+            <option value="">Select an option...</option>
+            ${options}
+          </select>
+        `;
+        
+      case 'multi-select':
+        const multiOptions = field.options.map(option => 
+          `<option value="${option.value}">${option.label}</option>`
+        ).join('');
+        return `
+          <select ${baseAttributes} class="form-select" multiple>
+            ${multiOptions}
+          </select>
+        `;
+        
+      case 'multi-text':
+        return `
+          <div class="multi-text-container">
+            <div class="multi-text-inputs" id="inputs-${fieldId}">
+              <div class="multi-text-item">
+                <input type="text" ${baseAttributes} class="form-input multi-text-item" />
+                <button type="button" class="remove-btn" style="display: none;">×</button>
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-secondary" data-action="add-item">
+              <span class="btn-icon">+</span>
+              Add Item
+            </button>
+          </div>
+        `;
+        
+      case 'textarea':
+        return `<textarea ${baseAttributes} class="form-textarea" rows="3"></textarea>`;
+        
+      default:
+        return `<input type="text" ${baseAttributes} class="form-input" />`;
+    }
+  }
+
+  /**
+   * Get form fields for category
+   * @param {string} categoryKey - Category key
+   * @returns {Array} Form fields
+   */
+  getFormFields(categoryKey) {
+    const mockFields = {
+      monitoring: [
+        { key: 'folderIds', type: 'multi-select', label: 'Monitor Folders', required: true, options: [
+          { value: 'folder1', label: 'Documents' },
+          { value: 'folder2', label: 'Projects' },
+          { value: 'folder3', label: 'Shared' }
+        ]},
+        { key: 'monitoringInterval', type: 'number', label: 'Monitoring Interval (minutes)', required: true, min: 5, max: 1440, step: 5 },
+        { key: 'maxFilesToProcess', type: 'number', label: 'Max Files to Process', required: true, min: 1, max: 1000 },
+        { key: 'fileChangeThreshold', type: 'number', label: 'Change Threshold', required: true, min: 1, max: 100 }
+      ],
+      notifications: [
+        { key: 'slackWebhookUrl', type: 'url', label: 'Slack Webhook URL', required: true, placeholder: 'https://hooks.slack.com/services/...' },
+        { key: 'defaultChannel', type: 'text', label: 'Default Channel', required: true, placeholder: '#dev_sandbox' },
+        { key: 'notificationFrequency', type: 'select', label: 'Notification Frequency', required: true, options: [
+          { value: 'immediate', label: 'Immediate' },
+          { value: 'batched', label: 'Batched (every 5 minutes)' },
+          { value: 'hourly', label: 'Hourly' },
+          { value: 'daily', label: 'Daily Summary' }
+        ]},
+        { key: 'dailySummaryTime', type: 'time', label: 'Daily Summary Time', required: false }
+      ],
+      triggers: [
+        { key: 'monitoringFrequency', type: 'number', label: 'Monitoring Frequency (minutes)', required: true, min: 5, max: 1440, step: 5 },
+        { key: 'dailySummaryTime', type: 'time', label: 'Daily Summary Time', required: true },
+        { key: 'weeklySummaryDay', type: 'select', label: 'Weekly Summary Day', required: true, options: [
+          { value: 'monday', label: 'Monday' },
+          { value: 'tuesday', label: 'Tuesday' },
+          { value: 'wednesday', label: 'Wednesday' },
+          { value: 'thursday', label: 'Thursday' },
+          { value: 'friday', label: 'Friday' },
+          { value: 'saturday', label: 'Saturday' },
+          { value: 'sunday', label: 'Sunday' }
+        ]},
+        { key: 'enableNotifications', type: 'checkbox', label: 'Enable Notifications', required: false }
+      ],
+      system: [
+        { key: 'debugMode', type: 'checkbox', label: 'Debug Mode', required: false },
+        { key: 'logLevel', type: 'select', label: 'Log Level', required: true, options: [
+          { value: 'error', label: 'Error Only' },
+          { value: 'warn', label: 'Warnings & Errors' },
+          { value: 'info', label: 'Info, Warnings & Errors' },
+          { value: 'debug', label: 'All Messages' }
+        ]},
+        { key: 'maxRetries', type: 'number', label: 'Max Retries', required: true, min: 0, max: 10 },
+        { key: 'timeoutSeconds', type: 'number', label: 'Timeout (seconds)', required: true, min: 5, max: 300 }
+      ],
+      users: [
+        { key: 'adminEmails', type: 'multi-text', label: 'Admin Emails', required: true, placeholder: 'admin@company.com' },
+        { key: 'approvedDomains', type: 'multi-text', label: 'Approved Domains', required: true, placeholder: 'company.com' },
+        { key: 'sessionTimeout', type: 'number', label: 'Session Timeout (hours)', required: true, min: 1, max: 168 },
+        { key: 'requireApproval', type: 'checkbox', label: 'Require Manual Approval', required: false }
+      ]
+    };
+    
+    return mockFields[categoryKey] || [];
+  }
+
+  /**
+   * Setup modal handlers
+   * @param {string} modalId - Modal ID
+   * @param {string} categoryKey - Category key
+   * @param {string} userEmail - User email
+   */
+  setupModalHandlers(modalId, categoryKey, userEmail) {
+    const modal = document.getElementById(modalId);
+    const backdrop = document.getElementById(`backdrop-${modalId}`);
+    
+    // Close modal handlers
+    backdrop.addEventListener('click', () => this.closeModal(modalId));
+    
+    // Action button handlers
+    modal.addEventListener('click', (e) => {
+      const action = e.target.getAttribute('data-action');
+      if (!action) return;
+      
+      switch (action) {
+        case 'cancel':
+          this.closeModal(modalId);
+          break;
+        case 'save':
+          this.saveModalForm(modalId, categoryKey, userEmail);
+          break;
+        case 'reset':
+          this.resetModalForm(modalId, categoryKey);
+          break;
+        case 'preview':
+          this.previewModalForm(modalId, categoryKey);
+          break;
+        case 'add-item':
+          this.addMultiTextItem(e.target);
+          break;
+      }
+    });
+    
+    // Form field change handlers
+    modal.addEventListener('input', (e) => {
+      if (e.target.matches('input, select, textarea')) {
+        this.handleFieldChange(modalId, categoryKey, e.target);
+      }
+    });
+    
+    // Keyboard handlers
+    modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeModal(modalId);
+      }
+    });
+  }
+
+  /**
+   * Show modal
+   * @param {string} modalId - Modal ID
+   */
+  showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    const backdrop = document.getElementById(`backdrop-${modalId}`);
+    
+    if (modal && backdrop) {
+      backdrop.classList.add('show');
+      modal.classList.add('show');
+      
+      // Focus first input
+      const firstInput = modal.querySelector('input, select, textarea');
+      if (firstInput) {
+        setTimeout(() => firstInput.focus(), 100);
+      }
+      
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  /**
+   * Close modal
+   * @param {string} modalId - Modal ID
+   */
+  closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    const backdrop = document.getElementById(`backdrop-${modalId}`);
+    
+    if (modal && backdrop) {
+      backdrop.classList.remove('show');
+      modal.classList.remove('show');
+      
+      // Restore body scroll
+      document.body.style.overflow = '';
+      
+      // Remove elements after animation
+      setTimeout(() => {
+        if (modal.parentNode) modal.parentNode.removeChild(modal);
+        if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+      }, 300);
+    }
+  }
+
+  /**
+   * Handle field change
+   * @param {string} modalId - Modal ID
+   * @param {string} categoryKey - Category key
+   * @param {HTMLElement} field - Field element
+   */
+  handleFieldChange(modalId, categoryKey, field) {
+    const fieldKey = field.getAttribute('data-field');
+    const value = this.getFieldValue(field);
+    
+    // Mark form as dirty
+    this.updateFormStatus(modalId, categoryKey, 'dirty', true);
+    
+    // Validate field
+    const validation = this.validateField(fieldKey, value, field);
+    this.showFieldFeedback(field, validation);
+    
+    // Update save button state
+    this.updateSaveButtonState(modalId, categoryKey);
+    
+    // Schedule auto-save
+    this.scheduleAutoSave(modalId, categoryKey);
+  }
+
+  /**
+   * Get field value
+   * @param {HTMLElement} field - Field element
+   * @returns {any} Field value
+   */
+  getFieldValue(field) {
+    if (field.type === 'checkbox') {
+      return field.checked;
+    } else if (field.type === 'number') {
+      return field.value ? Number(field.value) : null;
+    } else if (field.multiple) {
+      return Array.from(field.selectedOptions).map(option => option.value);
+    } else {
+      return field.value;
+    }
+  }
+
+  /**
+   * Validate field
+   * @param {string} fieldKey - Field key
+   * @param {any} value - Field value
+   * @param {HTMLElement} field - Field element
+   * @returns {Object} Validation result
+   */
+  validateField(fieldKey, value, field) {
+    const rules = this.getValidationRules(fieldKey);
+    
+    if (!rules) {
+      return { isValid: true, message: null };
+    }
+    
+    // Required validation
+    if (rules.required && (value === null || value === undefined || value === '')) {
+      return { isValid: false, message: 'This field is required' };
+    }
+    
+    // Skip other validations if value is empty and not required
+    if (!rules.required && (value === null || value === undefined || value === '')) {
+      return { isValid: true, message: null };
+    }
+    
+    // Number validations
+    if (typeof value === 'number') {
+      if (rules.min !== undefined && value < rules.min) {
+        return { isValid: false, message: `Must be at least ${rules.min}` };
+      }
+      if (rules.max !== undefined && value > rules.max) {
+        return { isValid: false, message: `Must be at most ${rules.max}` };
+      }
+    }
+    
+    // Pattern validation
+    if (rules.pattern && typeof value === 'string') {
+      const regex = new RegExp(rules.pattern);
+      if (!regex.test(value)) {
+        return { isValid: false, message: rules.message || 'Invalid format' };
+      }
+    }
+    
+    return { isValid: true, message: null };
+  }
+
+  /**
+   * Get validation rules for field
+   * @param {string} fieldKey - Field key
+   * @returns {Object} Validation rules
+   */
+  getValidationRules(fieldKey) {
+    const rules = {
+      slackWebhookUrl: { required: true, pattern: '^https://hooks\\.slack\\.com/services/.*', message: 'Must be a valid Slack webhook URL' },
+      defaultChannel: { required: true, pattern: '^#[a-zA-Z0-9_-]+$', message: 'Must be a valid Slack channel' },
+      monitoringInterval: { required: true, min: 5, max: 1440 },
+      maxFilesToProcess: { required: true, min: 1, max: 1000 },
+      fileChangeThreshold: { required: true, min: 1, max: 100 },
+      sessionTimeout: { required: true, min: 1, max: 168 },
+      maxRetries: { required: true, min: 0, max: 10 },
+      timeoutSeconds: { required: true, min: 5, max: 300 }
+    };
+    
+    return rules[fieldKey];
+  }
+
+  /**
+   * Show field feedback
+   * @param {HTMLElement} field - Field element
+   * @param {Object} validation - Validation result
+   */
+  showFieldFeedback(field, validation) {
+    const fieldId = field.id;
+    const errorElement = document.getElementById(`error-${fieldId}`);
+    const warningElement = document.getElementById(`warning-${fieldId}`);
+    
+    // Clear existing feedback
+    if (errorElement) errorElement.style.display = 'none';
+    if (warningElement) warningElement.style.display = 'none';
+    
+    // Show validation result
+    if (!validation.isValid) {
+      if (errorElement) {
+        errorElement.textContent = validation.message;
+        errorElement.style.display = 'block';
+      }
+      field.classList.add('invalid');
+    } else {
+      field.classList.remove('invalid');
+    }
+  }
+
+  /**
+   * Update form status
+   * @param {string} modalId - Modal ID
+   * @param {string} categoryKey - Category key
+   * @param {string} status - Status type
+   * @param {boolean} value - Status value
+   */
+  updateFormStatus(modalId, categoryKey, status, value) {
+    const statusElement = document.getElementById(`${status}-status-${categoryKey}`);
+    if (statusElement) {
+      statusElement.classList.toggle('show', value);
+    }
+  }
+
+  /**
+   * Update save button state
+   * @param {string} modalId - Modal ID
+   * @param {string} categoryKey - Category key
+   */
+  updateSaveButtonState(modalId, categoryKey) {
+    const modal = document.getElementById(modalId);
+    const saveButton = modal.querySelector('[data-action="save"]');
+    
+    if (saveButton) {
+      const hasErrors = modal.querySelectorAll('.invalid').length > 0;
+      saveButton.disabled = hasErrors;
+    }
+  }
+
+  /**
+   * Schedule auto-save
+   * @param {string} modalId - Modal ID
+   * @param {string} categoryKey - Category key
+   */
+  scheduleAutoSave(modalId, categoryKey) {
+    // Clear existing timeout
+    if (this.autoSaveTimeouts.has(modalId)) {
+      clearTimeout(this.autoSaveTimeouts.get(modalId));
+    }
+    
+    // Schedule new auto-save
+    const timeout = setTimeout(() => {
+      this.saveModalForm(modalId, categoryKey, null, true);
+    }, 2000);
+    
+    this.autoSaveTimeouts.set(modalId, timeout);
+  }
+
+  /**
+   * Save modal form
+   * @param {string} modalId - Modal ID
+   * @param {string} categoryKey - Category key
+   * @param {string} userEmail - User email
+   * @param {boolean} isAutoSave - Whether this is an auto-save
+   */
+  async saveModalForm(modalId, categoryKey, userEmail, isAutoSave = false) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    try {
+      // Show saving status
+      this.updateFormStatus(modalId, categoryKey, 'saving', true);
+      
+      // Collect form data
+      const formData = this.collectFormData(modal);
+      
+      // Validate all fields
+      const validation = this.validateFormData(formData);
+      
+      if (!validation.isValid) {
+        this.showToast('Form validation failed', 'error');
+        return;
+      }
+      
+      // Save data (mock implementation)
+      await this.mockSaveData(categoryKey, formData);
+      
+      // Update status
+      this.updateFormStatus(modalId, categoryKey, 'saved', true);
+      this.updateFormStatus(modalId, categoryKey, 'dirty', false);
+      
+      if (!isAutoSave) {
+        this.showToast('Configuration saved successfully', 'success');
+      }
+      
+    } catch (error) {
+      this.showToast('Failed to save configuration', 'error');
+      console.error('Save error:', error);
+    } finally {
+      this.updateFormStatus(modalId, categoryKey, 'saving', false);
+    }
+  }
+
+  /**
+   * Collect form data
+   * @param {HTMLElement} modal - Modal element
+   * @returns {Object} Form data
+   */
+  collectFormData(modal) {
+    const formData = {};
+    const fields = modal.querySelectorAll('input, select, textarea');
+    
+    fields.forEach(field => {
+      const key = field.getAttribute('data-field');
+      if (key) {
+        formData[key] = this.getFieldValue(field);
+      }
+    });
+    
+    return formData;
+  }
+
+  /**
+   * Validate form data
+   * @param {Object} formData - Form data
+   * @returns {Object} Validation result
+   */
+  validateFormData(formData) {
+    let isValid = true;
+    const errors = {};
+    
+    for (const [key, value] of Object.entries(formData)) {
+      const validation = this.validateField(key, value, null);
+      if (!validation.isValid) {
+        isValid = false;
+        errors[key] = validation.message;
+      }
+    }
+    
+    return { isValid, errors };
+  }
+
+  /**
+   * Mock save data
+   * @param {string} categoryKey - Category key
+   * @param {Object} formData - Form data
+   * @returns {Promise} Save promise
+   */
+  async mockSaveData(categoryKey, formData) {
+    // Simulate API call
+    return new Promise(resolve => {
+      setTimeout(() => {
+        console.log(`Saving ${categoryKey}:`, formData);
+        resolve({ success: true });
+      }, 500);
+    });
+  }
+
+  /**
+   * Reset modal form
+   * @param {string} modalId - Modal ID
+   * @param {string} categoryKey - Category key
+   */
+  resetModalForm(modalId, categoryKey) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    // Reset all form fields
+    const fields = modal.querySelectorAll('input, select, textarea');
+    fields.forEach(field => {
+      if (field.type === 'checkbox') {
+        field.checked = false;
+      } else {
+        field.value = '';
+      }
+      field.classList.remove('invalid');
+    });
+    
+    // Clear feedback
+    const feedbackElements = modal.querySelectorAll('.field-error, .field-warning, .field-help');
+    feedbackElements.forEach(element => {
+      element.style.display = 'none';
+    });
+    
+    // Reset status
+    this.updateFormStatus(modalId, categoryKey, 'dirty', false);
+    this.updateFormStatus(modalId, categoryKey, 'saved', false);
+    
+    this.showToast('Form reset successfully', 'info');
+  }
+
+  /**
+   * Preview modal form
+   * @param {string} modalId - Modal ID
+   * @param {string} categoryKey - Category key
+   */
+  previewModalForm(modalId, categoryKey) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    const formData = this.collectFormData(modal);
+    
+    // Show preview in a toast
+    const previewText = Object.entries(formData)
+      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+      .join('\n');
+    
+    this.showToast(`Preview:\n${previewText}`, 'info', 5000);
+  }
+
+  /**
+   * Add multi-text item
+   * @param {HTMLElement} button - Add button element
+   */
+  addMultiTextItem(button) {
+    const container = button.previousElementSibling;
+    const fieldId = container.id.replace('inputs-', '');
+    const field = document.getElementById(fieldId);
+    
+    const newItem = document.createElement('div');
+    newItem.className = 'multi-text-item';
+    newItem.innerHTML = `
+      <input type="text" class="form-input multi-text-item" placeholder="${field.placeholder || ''}" />
+      <button type="button" class="remove-btn">×</button>
+    `;
+    
+    container.appendChild(newItem);
+    
+    // Setup remove button
+    const removeBtn = newItem.querySelector('.remove-btn');
+    removeBtn.addEventListener('click', () => {
+      newItem.remove();
+    });
+    
+    // Show remove buttons if more than one item
+    const items = container.querySelectorAll('.multi-text-item');
+    if (items.length > 1) {
+      items.forEach(item => {
+        const removeBtn = item.querySelector('.remove-btn');
+        if (removeBtn) removeBtn.style.display = 'block';
+      });
+    }
+  }
+}
+
+// Initialize Modern UI when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  window.modernUI = new ModernUI();
+});
+
+// Export for module usage
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = ModernUI;
+}
+</script>

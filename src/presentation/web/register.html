@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GDrive Slack Notifier - Register</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #333;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .registration-form {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group label.required::after {
+            content: ' *';
+            color: #e74c3c;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        .form-group input.error,
+        .form-group textarea.error,
+        .form-group select.error {
+            border-color: #e74c3c;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .info-box h4 {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .warning-box h4 {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .register-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .register-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .register-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e5e9;
+        }
+
+        .footer-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 13px;
+            margin: 0 10px;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        .domain-status {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .domain-status.approved {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .domain-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .domain-status.show {
+            display: block;
+        }
+
+        .password-strength {
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .password-strength.weak {
+            color: #e74c3c;
+        }
+
+        .password-strength.medium {
+            color: #f39c12;
+        }
+
+        .password-strength.strong {
+            color: #27ae60;
+        }
+
+        .terms-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .terms-checkbox input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .terms-checkbox label {
+            font-size: 13px;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        .terms-checkbox a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .terms-checkbox a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .auth-container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+            
+            .logo h1 {
+                font-size: 20px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="logo">
+            <h1>🔔 GDrive Slack Notifier</h1>
+            <p>Create your account to get started</p>
+        </div>
+
+        <div class="info-box">
+            <h4>📝 Registration Process</h4>
+            <p>Fill out the form below to request access. Your registration will be reviewed by an administrator before approval.</p>
+        </div>
+
+        <form class="registration-form" id="registrationForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="firstName" class="required">First Name</label>
+                    <input type="text" id="firstName" placeholder="John" required>
+                    <div class="error-message" id="firstName-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="lastName" class="required">Last Name</label>
+                    <input type="text" id="lastName" placeholder="Doe" required>
+                    <div class="error-message" id="lastName-error"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="required">Email Address</label>
+                <input type="email" id="email" placeholder="john.doe@company.com" required>
+                <div class="domain-status" id="domain-status"></div>
+                <div class="error-message" id="email-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="organization" class="required">Organization</label>
+                <input type="text" id="organization" placeholder="Your Company Name" required>
+                <div class="error-message" id="organization-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="jobTitle">Job Title</label>
+                <input type="text" id="jobTitle" placeholder="Software Engineer">
+            </div>
+
+            <div class="form-group">
+                <label for="reason" class="required">Reason for Access</label>
+                <textarea id="reason" rows="3" placeholder="Please explain why you need access to the GDrive Slack Notifier system..." required></textarea>
+                <div class="error-message" id="reason-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="required">Password</label>
+                <input type="password" id="password" placeholder="Create a secure password" required>
+                <div class="password-strength" id="password-strength"></div>
+                <div class="error-message" id="password-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword" class="required">Confirm Password</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
+                <div class="error-message" id="confirmPassword-error"></div>
+            </div>
+
+            <div class="terms-checkbox">
+                <input type="checkbox" id="termsAccepted" required>
+                <label for="termsAccepted">
+                    I agree to the <a href="#" onclick="showTerms()">Terms of Service</a> and <a href="#" onclick="showPrivacy()">Privacy Policy</a>
+                </label>
+            </div>
+
+            <button type="submit" class="register-button" id="registerButton">
+                Request Access
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Submitting registration request...</p>
+            </div>
+
+            <div class="success-message" id="success">
+                ✅ Registration submitted successfully! You will receive an email once your account is approved.
+            </div>
+        </form>
+
+        <div class="footer-links">
+            <a href="login.html">Already have an account?</a>
+            <a href="#" onclick="showHelp()">Help & Support</a>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let isSubmitting = false;
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+        });
+
+        function initializePage() {
+            // Add event listeners
+            document.getElementById('email').addEventListener('input', handleEmailChange);
+            document.getElementById('password').addEventListener('input', handlePasswordChange);
+            document.getElementById('confirmPassword').addEventListener('input', handlePasswordConfirm);
+            document.getElementById('registrationForm').addEventListener('submit', handleRegistration);
+
+            // Add enter key support
+            document.querySelectorAll('input, textarea').forEach(element => {
+                element.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleRegistration();
+                    }
+                });
+            });
+        }
+
+        function handleEmailChange() {
+            const email = document.getElementById('email').value;
+            const domainStatus = document.getElementById('domain-status');
+            
+            if (email && email.includes('@')) {
+                const domain = email.split('@')[1];
+                checkDomainStatus(domain).then(status => {
+                    if (status === 'approved') {
+                        domainStatus.textContent = '✅ This domain is approved for SSO access';
+                        domainStatus.className = 'domain-status approved show';
+                    } else if (status === 'pending') {
+                        domainStatus.textContent = '⚠️ This domain requires manual approval';
+                        domainStatus.className = 'domain-status pending show';
+                    } else {
+                        domainStatus.textContent = 'ℹ️ This domain will require manual approval';
+                        domainStatus.className = 'domain-status pending show';
+                    }
+                });
+            } else {
+                domainStatus.classList.remove('show');
+            }
+        }
+
+        async function checkDomainStatus(domain) {
+            try {
+                // This would call the backend to check domain status
+                // For now, we'll simulate with known domains
+                const approvedDomains = ['iress.com', 'iress.au', 'company.com'];
+                if (approvedDomains.includes(domain.toLowerCase())) {
+                    return 'approved';
+                } else {
+                    return 'pending';
+                }
+            } catch (error) {
+                console.error('Domain check failed:', error);
+                return 'pending';
+            }
+        }
+
+        function handlePasswordChange() {
+            const password = document.getElementById('password').value;
+            const strengthElement = document.getElementById('password-strength');
+            
+            if (password.length === 0) {
+                strengthElement.textContent = '';
+                return;
+            }
+
+            const strength = calculatePasswordStrength(password);
+            strengthElement.textContent = `Password strength: ${strength.text}`;
+            strengthElement.className = `password-strength ${strength.class}`;
+        }
+
+        function calculatePasswordStrength(password) {
+            let score = 0;
+            
+            if (password.length >= 8) score++;
+            if (password.length >= 12) score++;
+            if (/[a-z]/.test(password)) score++;
+            if (/[A-Z]/.test(password)) score++;
+            if (/[0-9]/.test(password)) score++;
+            if (/[^A-Za-z0-9]/.test(password)) score++;
+
+            if (score < 3) return { text: 'Weak', class: 'weak' };
+            if (score < 5) return { text: 'Medium', class: 'medium' };
+            return { text: 'Strong', class: 'strong' };
+        }
+
+        function handlePasswordConfirm() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const errorElement = document.getElementById('confirmPassword-error');
+
+            if (confirmPassword && password !== confirmPassword) {
+                showError('confirmPassword', 'Passwords do not match');
+            } else {
+                clearError('confirmPassword');
+            }
+        }
+
+        async function handleRegistration(event) {
+            if (event) event.preventDefault();
+            if (isSubmitting) return;
+
+            // Validate form
+            if (!validateForm()) return;
+
+            isSubmitting = true;
+            showLoading();
+
+            try {
+                const registrationData = {
+                    firstName: document.getElementById('firstName').value.trim(),
+                    lastName: document.getElementById('lastName').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    organization: document.getElementById('organization').value.trim(),
+                    jobTitle: document.getElementById('jobTitle').value.trim(),
+                    reason: document.getElementById('reason').value.trim(),
+                    password: document.getElementById('password').value
+                };
+
+                // Call the backend registration service
+                const result = await google.script.run
+                    .withSuccessHandler(handleRegistrationSuccess)
+                    .withFailureHandler(handleRegistrationError)
+                    .registerUser(registrationData);
+
+            } catch (error) {
+                handleRegistrationError(error);
+            }
+        }
+
+        function validateForm() {
+            let isValid = true;
+
+            // Clear all errors first
+            clearAllErrors();
+
+            // Validate required fields
+            const requiredFields = ['firstName', 'lastName', 'email', 'organization', 'reason', 'password', 'confirmPassword'];
+            
+            requiredFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (!field.value.trim()) {
+                    showError(fieldId, `${getFieldLabel(fieldId)} is required`);
+                    isValid = false;
+                }
+            });
+
+            // Validate email format
+            const email = document.getElementById('email').value;
+            if (email && !isValidEmail(email)) {
+                showError('email', 'Please enter a valid email address');
+                isValid = false;
+            }
+
+            // Validate password match
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            if (password && confirmPassword && password !== confirmPassword) {
+                showError('confirmPassword', 'Passwords do not match');
+                isValid = false;
+            }
+
+            // Validate password strength
+            if (password && password.length < 8) {
+                showError('password', 'Password must be at least 8 characters long');
+                isValid = false;
+            }
+
+            // Validate terms acceptance
+            if (!document.getElementById('termsAccepted').checked) {
+                showError('termsAccepted', 'You must accept the terms and conditions');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function getFieldLabel(fieldId) {
+            const labels = {
+                'firstName': 'First Name',
+                'lastName': 'Last Name',
+                'email': 'Email Address',
+                'organization': 'Organization',
+                'reason': 'Reason for Access',
+                'password': 'Password',
+                'confirmPassword': 'Confirm Password'
+            };
+            return labels[fieldId] || fieldId;
+        }
+
+        function handleRegistrationSuccess(result) {
+            isSubmitting = false;
+            hideLoading();
+            
+            if (result.success) {
+                showSuccess();
+                // Clear form
+                document.getElementById('registrationForm').reset();
+                clearAllErrors();
+            } else {
+                showError('email', result.message || 'Registration failed');
+            }
+        }
+
+        function handleRegistrationError(error) {
+            isSubmitting = false;
+            hideLoading();
+            showError('email', error.message || 'Registration failed. Please try again.');
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('registerButton').disabled = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+            document.getElementById('registerButton').disabled = false;
+        }
+
+        function showSuccess() {
+            document.getElementById('success').classList.add('show');
+        }
+
+        function showError(fieldId, message) {
+            const errorElement = document.getElementById(fieldId + '-error');
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.classList.add('show');
+                document.getElementById(fieldId).classList.add('error');
+            }
+        }
+
+        function clearError(fieldId) {
+            const errorElement = document.getElementById(fieldId + '-error');
+            if (errorElement) {
+                errorElement.classList.remove('show');
+                document.getElementById(fieldId).classList.remove('error');
+            }
+        }
+
+        function clearAllErrors() {
+            document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
+            document.querySelectorAll('input, textarea').forEach(el => el.classList.remove('error'));
+        }
+
+        function showTerms() {
+            alert('Terms of Service\n\nBy using this service, you agree to:\n\n1. Use the system responsibly\n2. Not share your credentials\n3. Report any security issues\n4. Comply with company policies\n\nFull terms available upon request.');
+        }
+
+        function showPrivacy() {
+            alert('Privacy Policy\n\nWe collect and store:\n\n1. Your email address for authentication\n2. Usage logs for security purposes\n3. Configuration preferences\n\nWe do not share your data with third parties.\n\nFull policy available upon request.');
+        }
+
+        function showHelp() {
+            alert('Help & Support\n\nFor assistance with registration:\n\n1. Check your email domain is correct\n2. Ensure all required fields are filled\n3. Use a strong password\n4. Contact your system administrator\n\nSupport: admin@company.com');
+        }
+    </script>
+</body>
+</html>
