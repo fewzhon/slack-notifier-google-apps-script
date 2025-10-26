@@ -5,265 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GDrive Slack Notifier - Login</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .auth-container {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-      padding: 40px;
-      width: 100%;
-      max-width: 400px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .auth-container::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #667eea, #764ba2);
-    }
-
-    .logo {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .logo h1 {
-      color: #333;
-      font-size: 24px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .logo p {
-      color: #666;
-      font-size: 14px;
-    }
-
-    .auth-tabs {
-      display: flex;
-      margin-bottom: 30px;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #f8f9fa;
-    }
-
-    .tab-button {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      transition: all 0.3s ease;
-      color: #666;
-    }
-
-    .tab-button.active {
-      background: white;
-      color: #667eea;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .auth-form {
-      display: none;
-    }
-
-    .auth-form.active {
-      display: block;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      color: #333;
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 12px 16px;
-      border: 2px solid #e1e5e9;
-      border-radius: 8px;
-      font-size: 14px;
-      transition: border-color 0.3s ease;
-      background: #f8f9fa;
-    }
-
-    .form-group input:focus {
-      outline: none;
-      border-color: #667eea;
-      background: white;
-    }
-
-    .form-group input.error {
-      border-color: #e74c3c;
-    }
-
-    .error-message {
-      color: #e74c3c;
-      font-size: 12px;
-      margin-top: 4px;
-      display: none;
-    }
-
-    .error-message.show {
-      display: block;
-    }
-
-    .auth-button {
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin-bottom: 20px;
-    }
-
-    .auth-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-    }
-
-    .auth-button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .loading {
-      display: none;
-      text-align: center;
-      margin: 20px 0;
-    }
-
-    .loading.show {
-      display: block;
-    }
-
-    .spinner {
-      width: 20px;
-      height: 20px;
-      border: 2px solid #f3f3f3;
-      border-top: 2px solid #667eea;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 10px;
-    }
-
-    @keyframes spin {
-      0% {
-        transform: rotate(0deg);
-      }
-
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-
-    .success-message {
-      background: #d4edda;
-      color: #155724;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      display: none;
-      font-size: 14px;
-    }
-
-    .success-message.show {
-      display: block;
-    }
-
-    .info-box {
-      background: #e3f2fd;
-      color: #1565c0;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 13px;
-      line-height: 1.4;
-    }
-
-    .info-box h4 {
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
-
-    .footer-links {
-      text-align: center;
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid #e1e5e9;
-    }
-
-    .footer-links a {
-      color: #667eea;
-      text-decoration: none;
-      font-size: 13px;
-      margin: 0 10px;
-    }
-
-    .footer-links a:hover {
-      text-decoration: underline;
-    }
-
-    .domain-info {
-      background: #fff3cd;
-      color: #856404;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      margin-top: 8px;
-      display: none;
-    }
-
-    .domain-info.show {
-      display: block;
-    }
-
-    @media (max-width: 480px) {
-      .auth-container {
-        padding: 30px 20px;
-        margin: 10px;
-      }
-
-      .logo h1 {
-        font-size: 20px;
-      }
-    }
-  </style>
+  <!-- Unified Authentication Styles -->
+  <?!= include('assets/css/auth-styles.html'); ?>
 </head>
 
 <body>
@@ -523,12 +266,9 @@
                 sessionStorage.setItem('userEmail', result.user.email);
                 sessionStorage.setItem('userRole', result.user.role);
                 
-                // Simple redirect - let doGet() handle serving the dashboard
-                const redirectUrl = result.redirectUrl || (window.location.origin + window.location.pathname + '?authToken=' + sessionToken);
-                console.log('Redirecting to:', redirectUrl);
-                
-                // Use location.replace for clean navigation
-                window.location.replace(redirectUrl);
+                // Redirect using relative URL (like the example)
+                console.log('Redirecting to dashboard...');
+                window.location.href = '?v=dashboard';
             } else {
                 showError('sso-email', result.message || 'SSO authentication failed');
             }
@@ -552,12 +292,9 @@
                 sessionStorage.setItem('userEmail', result.user.email);
                 sessionStorage.setItem('userRole', result.user.role);
                 
-                // Simple redirect - let doGet() handle serving the dashboard
-                const redirectUrl = result.redirectUrl || (window.location.origin + window.location.pathname + '?authToken=' + sessionToken);
-                console.log('Redirecting to:', redirectUrl);
-                
-                // Use location.replace for clean navigation
-                window.location.replace(redirectUrl);
+                // Redirect using relative URL (like the example)
+                console.log('Redirecting to dashboard...');
+                window.location.href = '?v=dashboard';
             } else {
                 showError('manual-email', result.message || 'Manual authentication failed');
             }
@@ -720,6 +457,13 @@
 
     // Check existing authentication on page load
     checkExistingAuth();
+
+    // Export functions to global scope for onclick handlers
+    window.handleSSOLogin = handleSSOLogin;
+    window.handleManualLogin = handleManualLogin;
+    window.switchTab = switchTab;
+    window.showRegisterForm = showRegisterForm;
+    window.showHelp = showHelp;
 
   })(); // Close the IIFE wrapper
   </script>

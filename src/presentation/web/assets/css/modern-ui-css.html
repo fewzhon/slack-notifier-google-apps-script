@@ -833,47 +833,8 @@ body {
 .shadow-xl { box-shadow: var(--shadow-xl); }
 
 /* ========================================
-   MODAL SYSTEM STYLES
+   MODAL ENHANCED STYLES (Extended from base modal above)
    ======================================== */
-
-   .modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  z-index: 1000;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.modal-backdrop.show {
-  opacity: 1;
-}
-
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0.9);
-  background: var(--card-bg);
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  z-index: 1001;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow: hidden;
-  opacity: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.modal.show {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
-}
-
 .modal.small {
   width: 400px;
 }
@@ -1172,59 +1133,8 @@ body {
 }
 
 /* ========================================
-   BUTTON ENHANCEMENTS
+   BUTTON EXTENSIONS (using base .btn styles above)
    ======================================== */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  box-sizing: border-box;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--primary-color);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--primary-color-dark);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.btn-secondary {
-  background: var(--surface-bg);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--hover-bg);
-  border-color: var(--primary-color);
-}
-
-.btn-sm {
-  padding: 8px 12px;
-  font-size: 0.8rem;
-}
-
-.btn-icon {
-  font-size: 0.8rem;
-}
 
 /* ========================================
    ANIMATIONS

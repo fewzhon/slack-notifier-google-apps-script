@@ -6,7 +6,7 @@
     <title><?= appName || 'Configuration Dashboard' ?></title>
     
     <!-- Include Modern UI CSS Framework -->
-    <?!= includeAsset("modern-ui-css") ?>
+    <?!= include('modern-ui-css.html'); ?>
 </head>
 <body>
     <!-- Dashboard Container -->
@@ -61,10 +61,10 @@
     </div>
 
     <!-- Include Dashboard JavaScript Module -->
-    <?!= includeAsset('dashboard-js') ?>
+    <?!= include('dashboard-js.html'); ?>
     
     <!-- Include Modern UI JavaScript Framework -->
-    <?!= includeAsset('modern-ui-js') ?>
+    <?!= include('modern-ui-js.html'); ?>
     
     <!-- Initialize Dashboard -->
     <script>

@@ -1,91 +1,126 @@
 /**
+ * Simple routing system - based on proven patterns
+ */
+var Route = {};
+Route.path = function(route, callback) {
+  Route[route] = callback;
+};
+
+/**
  * Main entry point for web app
- * Must be a global function for Apps Script
+ * Simple MVP routing based on proven patterns
  */
 function doGet(e) {
   try {
-    Logger.log('[WebApp] ========== doGet START ==========');
-    Logger.log('[WebApp] Parameters: ' + JSON.stringify(e.parameter || {}));
+    Logger.log('[doGet] ========== START ==========');
+    Logger.log('[doGet] Parameters: ' + JSON.stringify(e.parameter || {}));
     
-    const authToken = e.parameter?.authToken;
-    const page = e.parameter?.page;
+    // Register all routes
+    Route.path("login", loadLoginPage);
+    Route.path("register", loadRegisterPage);
+    Route.path("dashboard", loadDashboardPage);
+    Route.path("test", loadTestPage);
     
-    Logger.log('[WebApp] authToken: ' + (authToken ? 'YES (' + authToken.substring(0, 20) + '...)' : 'NO'));
-    Logger.log('[WebApp] page: ' + (page || 'none'));
+    // Check if we have a route parameter
+    const route = e.parameter.v;
     
-    // Test page route
-    if (page === 'test') {
-      Logger.log('[WebApp] Serving TEST page');
-      return serveTestPage();
+    if (route && Route[route]) {
+      Logger.log('[doGet] Serving route: ' + route);
+      return Route[route]();
+    } else {
+      Logger.log('[doGet] No route specified, serving register page (login disabled)');
+      return loadRegisterPage();
     }
-    
-    // If we have authToken, serve dashboard
-    if (authToken) {
-      Logger.log('[WebApp] ✅ Serving DASHBOARD');
-      return serveDashboard(authToken);
-    }
-    
-    // No authToken, serve login
-    Logger.log('[WebApp] Serving LOGIN page');
-    return serveLogin();
     
   } catch (error) {
-    Logger.log('[WebApp] ❌ ERROR in doGet: ' + error.message);
-    Logger.log('[WebApp] Stack: ' + error.stack);
+    Logger.log('[doGet] ❌ ERROR: ' + error.message);
+    Logger.log('[doGet] Stack: ' + error.stack);
     return createErrorPage('Error', error.message);
   }
 }
 
 /**
- * Serve login page
+ * Load login page (default route)
  */
-function serveLogin() {
-  return HtmlService.createHtmlOutputFromFile('login')
+function loadLoginPage() {
+  return render('login')
     .setTitle('Login - Slack Notifier')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 /**
- * Serve dashboard page
+ * Load registration page
  */
-function serveDashboard(authToken) {
-  try {
-    Logger.log('[WebApp] Creating dashboard template...');
-    const template = HtmlService.createTemplateFromFile('configDashboard');
-    
-    // Add server-side variables
-    template.appName = 'Slack Notifier Configuration';
-    template.authToken = authToken;
-    template.userEmail = 'authenticated-user';
-    
-    Logger.log('[WebApp] Evaluating dashboard template...');
-    const output = template.evaluate()
-      .setTitle('Dashboard - Slack Notifier')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-    
-    Logger.log('[WebApp] ✅ Dashboard ready to serve');
-    return output;
-    
-  } catch (error) {
-    Logger.log('[WebApp] ❌ Error in serveDashboard: ' + error.message);
-    throw error;
-  }
+function loadRegisterPage() {
+  return render('register')
+    .setTitle('Register - Slack Notifier')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 /**
- * Serve test page
+ * Load dashboard page
  */
-function serveTestPage() {
-  return HtmlService.createHtmlOutputFromFile('testWebAppService')
+function loadDashboardPage() {
+  return render('configDashboard', {
+    appName: 'Slack Notifier Configuration'
+  })
+    .setTitle('Dashboard - Slack Notifier')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Load test page
+ */
+function loadTestPage() {
+  return render('testWebAppService')
     .setTitle('Test Page')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 /**
- * Include asset files (CSS/JS)
+ * Include helper - for including CSS/JS in HTML templates
+ * Usage in HTML: <?!= include('filename') ?>
  */
-function includeAsset(filename) {
+function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+/**
+ * Render helper - simplified version based on proven Apps Script patterns
+ * @param {string} file - HTML file to render
+ * @param {Object} argsObject - Optional object with variables to pass to template
+ * @returns {HtmlOutput} - The rendered HTML output
+ */
+function render(file, argsObject) {
+  try {
+    Logger.log('[render] Rendering file: ' + file);
+    
+    const template = HtmlService.createTemplateFromFile(file);
+    
+    // Add any arguments to the template
+    if (argsObject) {
+      const keys = Object.keys(argsObject);
+      keys.forEach(function(key) {
+        template[key] = argsObject[key];
+      });
+    }
+    
+    const output = template.evaluate();
+    
+    Logger.log('[render] ✅ Successfully rendered: ' + file);
+    return output;
+    
+  } catch (error) {
+    Logger.log('[render] ❌ Error rendering ' + file + ': ' + error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get web app URL helper
+ */
+function getWebAppUrl() {
+  return ScriptApp.getService().getUrl();
 }
 
 /**
@@ -133,7 +168,7 @@ function createErrorPage(title, message) {
       <div class="error-container">
         <h1>⚠️ ${title}</h1>
         <p>${message}</p>
-        <a href="${ScriptApp.getService().getUrl()}">Back to Login</a>
+        <a href="<?= ScriptApp.getService().getUrl() ?>">Back to Login</a>
       </div>
     </body>
     </html>

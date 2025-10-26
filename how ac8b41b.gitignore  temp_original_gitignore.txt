@@ -1,6 +1,3 @@
-dist/
-build/
-
 # Environment variables (NEVER commit these!)
 .env
 .env.local
@@ -27,6 +24,10 @@ build/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Logs
+*.log
+logs/
 
 # Runtime data
 pids
@@ -57,9 +58,7 @@ node_modules/
 tmp/
 temp/
 
-
-# Logs
-logs/
+logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -73,7 +72,6 @@ dev-debug.log
 *.njsproj
 *.sln
 *.sw?
-*.log
 # OS specific
 
 # Task management and development tools

@@ -80,12 +80,9 @@
         sessionStorage.clear();
         localStorage.clear();
 
-        // Clean URL
-        window.history.replaceState(null, '', window.location.origin + window.location.pathname);
-
-        // Redirect to login page
+        // Redirect to login page using relative URL
         console.log('Redirecting to login page...');
-        window.location.href = window.location.origin + window.location.pathname;
+        window.location.href = '?v=login';
       })
       .withFailureHandler(function (error) {
         console.log('=== SERVER-SIDE LOGOUT FAILED ===');
@@ -95,8 +92,7 @@
         // Fallback: Clear client-side data and redirect anyway
         sessionStorage.clear();
         localStorage.clear();
-        window.history.replaceState(null, '', window.location.origin + window.location.pathname);
-        window.location.href = window.location.origin + window.location.pathname;
+        window.location.href = '?v=login';
       })
       .logoutUser(); // Call the simple logoutUser() function from AuthAPI.js
   }

@@ -1,0 +1,20 @@
+{
+  "name": "slack-notifier",
+  "version": "1.0.0",
+  "description": "GDrive Slack Notifier - Google Apps Script Project",
+  "scripts": {
+    "lint:css": "stylelint \"src/presentation/web/assets/css/**/*.html\"",
+    "format:css": "prettier --write \"src/**/*.html\"",
+    "lint:all": "npm run lint:css",
+    "format:all": "npm run format:css"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "stylelint": "^16.0.0",
+    "stylelint-config-standard": "^36.0.0"
+  },
+  "keywords": ["google-apps-script", "slack", "notifier"],
+  "author": "",
+  "license": "MIT"
+}
+
