@@ -1,345 +1,359 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GDrive Slack Notifier - Login</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GDrive Slack Notifier - Login</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
 
-        .auth-container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            padding: 40px;
-            width: 100%;
-            max-width: 400px;
-            position: relative;
-            overflow: hidden;
-        }
+    .auth-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      position: relative;
+      overflow: hidden;
+    }
 
-        .auth-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-        }
+    .auth-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+    }
 
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
 
-        .logo h1 {
-            color: #333;
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
+    .logo h1 {
+      color: #333;
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
 
-        .logo p {
-            color: #666;
-            font-size: 14px;
-        }
+    .logo p {
+      color: #666;
+      font-size: 14px;
+    }
 
-        .auth-tabs {
-            display: flex;
-            margin-bottom: 30px;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #f8f9fa;
-        }
+    .auth-tabs {
+      display: flex;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f8f9fa;
+    }
 
-        .tab-button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            color: #666;
-        }
+    .tab-button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      color: #666;
+    }
 
-        .tab-button.active {
-            background: white;
-            color: #667eea;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
+    .tab-button.active {
+      background: white;
+      color: #667eea;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
 
-        .auth-form {
-            display: none;
-        }
+    .auth-form {
+      display: none;
+    }
 
-        .auth-form.active {
-            display: block;
-        }
+    .auth-form.active {
+      display: block;
+    }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+    .form-group {
+      margin-bottom: 20px;
+    }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-size: 14px;
-            font-weight: 500;
-        }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-size: 14px;
+      font-weight: 500;
+    }
 
-        .form-group input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-            background: #f8f9fa;
-        }
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e1e5e9;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s ease;
+      background: #f8f9fa;
+    }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-            background: white;
-        }
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      background: white;
+    }
 
-        .form-group input.error {
-            border-color: #e74c3c;
-        }
+    .form-group input.error {
+      border-color: #e74c3c;
+    }
 
-        .error-message {
-            color: #e74c3c;
-            font-size: 12px;
-            margin-top: 4px;
-            display: none;
-        }
+    .error-message {
+      color: #e74c3c;
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+    }
 
-        .error-message.show {
-            display: block;
-        }
+    .error-message.show {
+      display: block;
+    }
 
-        .auth-button {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-        }
+    .auth-button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 20px;
+    }
 
-        .auth-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-        }
+    .auth-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
 
-        .auth-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
+    .auth-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
 
-        .loading {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 20px 0;
+    }
 
-        .loading.show {
-            display: block;
-        }
+    .loading.show {
+      display: block;
+    }
 
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
 
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-            font-size: 14px;
-        }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
 
-        .success-message.show {
-            display: block;
-        }
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+      font-size: 14px;
+    }
 
-        .info-box {
-            background: #e3f2fd;
-            color: #1565c0;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 13px;
-            line-height: 1.4;
-        }
+    .success-message.show {
+      display: block;
+    }
 
-        .info-box h4 {
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
+    .info-box {
+      background: #e3f2fd;
+      color: #1565c0;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
 
-        .footer-links {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #e1e5e9;
-        }
+    .info-box h4 {
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
 
-        .footer-links a {
-            color: #667eea;
-            text-decoration: none;
-            font-size: 13px;
-            margin: 0 10px;
-        }
+    .footer-links {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e1e5e9;
+    }
 
-        .footer-links a:hover {
-            text-decoration: underline;
-        }
+    .footer-links a {
+      color: #667eea;
+      text-decoration: none;
+      font-size: 13px;
+      margin: 0 10px;
+    }
 
-        .domain-info {
-            background: #fff3cd;
-            color: #856404;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            margin-top: 8px;
-            display: none;
-        }
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
 
-        .domain-info.show {
-            display: block;
-        }
+    .domain-info {
+      background: #fff3cd;
+      color: #856404;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+    }
 
-        @media (max-width: 480px) {
-            .auth-container {
-                padding: 30px 20px;
-                margin: 10px;
-            }
-            
-            .logo h1 {
-                font-size: 20px;
-            }
-        }
-    </style>
+    .domain-info.show {
+      display: block;
+    }
+
+    @media (max-width: 480px) {
+      .auth-container {
+        padding: 30px 20px;
+        margin: 10px;
+      }
+
+      .logo h1 {
+        font-size: 20px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-    <div class="auth-container">
-        <div class="logo">
-            <h1>🔔 GDrive Slack Notifier</h1>
-            <p>Secure access to your notification system</p>
+  <div class="auth-container">
+    <div class="logo">
+      <h1>🔔 GDrive Slack Notifier</h1>
+      <p>Secure access to your notification system</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="tab-button active" onclick="switchTab('sso')">SSO Login</button>
+      <button class="tab-button" onclick="switchTab('manual')">Manual Login</button>
+    </div>
+
+    <!-- SSO Login Form -->
+    <div id="sso-form" class="auth-form active">
+      <div class="info-box">
+        <h4>🔐 Google Workspace SSO</h4>
+        <p>Sign in with your Google Workspace account for instant access.</p>
+      </div>
+
+      <div class="form-group">
+        <label for="sso-email">Email Address</label>
+        <input type="email" id="sso-email" placeholder="your.email@company.com" required>
+        <div class="domain-info" id="sso-domain-info">
+          ✅ This domain is approved for SSO access
         </div>
+      </div>
 
-        <div class="auth-tabs">
-            <button class="tab-button active" onclick="switchTab('sso')">SSO Login</button>
-            <button class="tab-button" onclick="switchTab('manual')">Manual Login</button>
-        </div>
-
-        <!-- SSO Login Form -->
-        <div id="sso-form" class="auth-form active">
-            <div class="info-box">
-                <h4>🔐 Google Workspace SSO</h4>
-                <p>Sign in with your Google Workspace account for instant access.</p>
-            </div>
-
-            <div class="form-group">
-                <label for="sso-email">Email Address</label>
-                <input type="email" id="sso-email" placeholder="your.email@company.com" required>
-                <div class="domain-info" id="sso-domain-info">
-                    ✅ This domain is approved for SSO access
-                </div>
-            </div>
-
-            <button class="auth-button" onclick="handleSSOLogin()">
+      <button class="auth-button" onclick="handleSSOLogin()">
                 Sign in with Google
             </button>
 
-            <div class="loading" id="sso-loading">
-                <div class="spinner"></div>
-                <p>Authenticating with Google...</p>
-            </div>
+      <div class="loading" id="sso-loading">
+        <div class="spinner"></div>
+        <p>Authenticating with Google...</p>
+      </div>
 
-            <div class="success-message" id="sso-success">
-                ✅ SSO authentication successful! Redirecting...
-            </div>
-        </div>
+      <div class="success-message" id="sso-success">
+        ✅ SSO authentication successful! Redirecting...
+      </div>
+    </div>
 
-        <!-- Manual Login Form -->
-        <div id="manual-form" class="auth-form">
-            <div class="info-box">
-                <h4>👤 Manual Login</h4>
-                <p>Sign in with your registered account credentials.</p>
-            </div>
+    <!-- Manual Login Form -->
+    <div id="manual-form" class="auth-form">
+      <div class="info-box">
+        <h4>👤 Manual Login</h4>
+        <p>Sign in with your registered account credentials.</p>
+      </div>
 
-            <div class="form-group">
-                <label for="manual-email">Email Address</label>
-                <input type="email" id="manual-email" placeholder="your.email@example.com" required>
-                <div class="error-message" id="manual-email-error"></div>
-            </div>
+      <div class="form-group">
+        <label for="manual-email">Email Address</label>
+        <input type="email" id="manual-email" placeholder="your.email@example.com" required>
+        <div class="error-message" id="manual-email-error"></div>
+      </div>
 
-            <div class="form-group">
-                <label for="manual-password">Password</label>
-                <input type="password" id="manual-password" placeholder="Enter your password" required>
-                <div class="error-message" id="manual-password-error"></div>
-            </div>
+      <div class="form-group">
+        <label for="manual-password">Password</label>
+        <input type="password" id="manual-password" placeholder="Enter your password" required>
+        <div class="error-message" id="manual-password-error"></div>
+      </div>
 
-            <button class="auth-button" onclick="handleManualLogin()">
+      <button class="auth-button" onclick="handleManualLogin()">
                 Sign In
             </button>
 
-            <div class="loading" id="manual-loading">
-                <div class="spinner"></div>
-                <p>Authenticating...</p>
-            </div>
+      <div class="loading" id="manual-loading">
+        <div class="spinner"></div>
+        <p>Authenticating...</p>
+      </div>
 
-            <div class="success-message" id="manual-success">
-                ✅ Manual authentication successful! Redirecting...
-            </div>
-        </div>
-
-        <div class="footer-links">
-            <a href="#" onclick="showRegisterForm()">Need an account?</a>
-            <a href="#" onclick="showHelp()">Help & Support</a>
-        </div>
+      <div class="success-message" id="manual-success">
+        ✅ Manual authentication successful! Redirecting...
+      </div>
     </div>
 
-    <script>
+    <div class="footer-links">
+      <a href="#" onclick="showRegisterForm()">Need an account?</a>
+      <a href="#" onclick="showHelp()">Help & Support</a>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+    // Single check for authToken - exit early if present
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('authToken')) {
+        console.log('Dashboard loading, skipping login scripts');
+        return;
+    }
         // Global state
         let currentTab = 'sso';
         let isAuthenticating = false;
@@ -368,6 +382,8 @@
                 if (e.key === 'Enter') handleManualLogin();
             });
         }
+
+        
 
         function switchTab(tab) {
             if (isAuthenticating) return;
@@ -490,12 +506,7 @@
             
             console.log('=== SSO SUCCESS DEBUG ===');
             console.log('Full result:', JSON.stringify(result, null, 2));
-            console.log('result type:', typeof result);
-            console.log('result === null:', result === null);
-            console.log('result === undefined:', result === undefined);
-            console.log('========================');
             
-            // Add null/undefined check
             if (result === null || result === undefined) {
                 console.error('SSO response is null or undefined');
                 showError('sso-email', 'Authentication failed - no response from server');
@@ -504,41 +515,20 @@
             
             if (result.success) {
                 showSuccess('sso');
-                // Store session token (handle both response formats)
-                const sessionToken = result.session?.token || result.session?.sessionId || result.sessionId;
-                console.log('Authentication result:', result);
+                const sessionToken = result.session?.sessionId || result.sessionId;
                 console.log('Session token:', sessionToken);
                 
-                // Store in sessionStorage instead of localStorage for better security
+                // Store in sessionStorage
                 sessionStorage.setItem('authToken', sessionToken);
                 sessionStorage.setItem('userEmail', result.user.email);
                 sessionStorage.setItem('userRole', result.user.role);
                 
-                // Use hybrid approach: Load dashboard content AND update URL
-                console.log('Loading dashboard content...');
-                google.script.run
-                    .withSuccessHandler(function(dashboardContent) {
-                        console.log('Dashboard content loaded successfully');
-                        
-                        // Update the page content
-                        document.body.innerHTML = dashboardContent;
-                        
-                        // Update the URL to reflect dashboard state
-                        // This ensures refresh works properly
-                        const newUrl = window.location.origin + window.location.pathname + '?page=dashboard&auth=' + sessionToken;
-                        window.history.replaceState({page: 'dashboard'}, 'Dashboard', newUrl);
-                        console.log('URL updated to:', newUrl);
-                        
-                        // Trigger dashboard initialization
-                        if (typeof initializeDashboard === 'function') {
-                            initializeDashboard();
-                        }
-                    })
-                    .withFailureHandler(function(error) {
-                        console.error('Failed to load dashboard:', error);
-                        showError('sso-email', 'Failed to load dashboard: ' + error);
-                    })
-                    .getConfigDashboard();
+                // Simple redirect - let doGet() handle serving the dashboard
+                const redirectUrl = result.redirectUrl || (window.location.origin + window.location.pathname + '?authToken=' + sessionToken);
+                console.log('Redirecting to:', redirectUrl);
+                
+                // Use location.replace for clean navigation
+                window.location.replace(redirectUrl);
             } else {
                 showError('sso-email', result.message || 'SSO authentication failed');
             }
@@ -556,42 +546,23 @@
             
             if (result.success) {
                 showSuccess('manual');
-                // Store session token (handle both response formats)
-                const sessionToken = result.session?.token || result.session?.sessionId || result.sessionId;
+                const sessionToken = result.session?.sessionId || result.sessionId;
                 
-                // Store in sessionStorage instead of localStorage
                 sessionStorage.setItem('authToken', sessionToken);
                 sessionStorage.setItem('userEmail', result.user.email);
                 sessionStorage.setItem('userRole', result.user.role);
                 
-                // Use hybrid approach: Load dashboard content AND update URL
-                console.log('Loading dashboard content...');
-                google.script.run
-                    .withSuccessHandler(function(dashboardContent) {
-                        console.log('Dashboard content loaded successfully');
-                        
-                        // Update the page content
-                        document.body.innerHTML = dashboardContent;
-                        
-                        // Update the URL to reflect dashboard state
-                        const newUrl = window.location.origin + window.location.pathname + '?page=dashboard&auth=' + sessionToken;
-                        window.history.replaceState({page: 'dashboard'}, 'Dashboard', newUrl);
-                        console.log('URL updated to:', newUrl);
-                        
-                        // Trigger dashboard initialization
-                        if (typeof initializeDashboard === 'function') {
-                            initializeDashboard();
-                        }
-                    })
-                    .withFailureHandler(function(error) {
-                        console.error('Failed to load dashboard:', error);
-                        showError('manual-email', 'Failed to load dashboard: ' + error);
-                    })
-                    .getConfigDashboard();
+                // Simple redirect - let doGet() handle serving the dashboard
+                const redirectUrl = result.redirectUrl || (window.location.origin + window.location.pathname + '?authToken=' + sessionToken);
+                console.log('Redirecting to:', redirectUrl);
+                
+                // Use location.replace for clean navigation
+                window.location.replace(redirectUrl);
             } else {
                 showError('manual-email', result.message || 'Manual authentication failed');
             }
         }
+
 
         function handleManualError(error) {
             isAuthenticating = false;
@@ -646,43 +617,49 @@
 
         // Check if user is already authenticated
         // Check if user is already authenticated
+        // Replace entire checkExistingAuth function
         function checkExistingAuth() {
-            // Don't check if we're in the middle of authentication
-            if (isAuthenticating) {
-                console.log('Authentication in progress, skipping existing auth check');
-                return;
-            }
-            
-            // Check if we just came from a successful login (hash or sessionStorage has token)
-            const hash = window.location.hash;
-            if (hash && hash.includes('auth=')) {
-                console.log('Fresh auth token detected in URL, skipping existing auth check');
-                // Clear any old tokens from localStorage
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('userEmail');
-                localStorage.removeItem('userRole');
-                return;
-            }
-            
-            // Check sessionStorage first (more recent)
-            let token = sessionStorage.getItem('authToken');
-            
-            // Fall back to localStorage only if sessionStorage is empty
-            if (!token) {
-                token = localStorage.getItem('authToken');
-            }
-            
-            if (token) {
-                console.log('Found existing auth token, validating...');
-                // Validate existing session
-                google.script.run
-                    .withSuccessHandler(handleExistingAuthSuccess)
-                    .withFailureHandler(handleExistingAuthFailure)
-                    .validateSession(token);
-            } else {
-                console.log('No existing auth token found');
-            }
+        // No need to check urlParams again - we already exited if authToken exists
+        
+        // Skip if authenticating
+        if (isAuthenticating) {
+            console.log('Authentication in progress, skipping check');
+            return;
         }
+        
+        // Check for existing token in storage only
+        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+        
+        if (token) {
+            console.log('Found existing auth token, validating before redirect...');
+            
+            // Validate the token before redirecting
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result && result.valid) {
+                        console.log('Token valid, redirecting to dashboard...');
+                        window.location.href = window.location.origin + window.location.pathname + '?authToken=' + token;
+                    } else {
+                        console.log('Token invalid, clearing and staying on login page');
+                        clearStoredAuth();
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    console.log('Token validation failed:', error);
+                    clearStoredAuth();
+                })
+                .validateSession(token);
+        }
+    }
+
+        // Check existing authentication on page load
+        // Only if we're NOT on a dashboard page request
+        //const urlParams = new URLSearchParams(window.location.search);
+        //const page = urlParams.get('page');
+
+        //if (page !== 'dashboard' && !urlParams.get('authToken')) {
+        //    checkExistingAuth();
+        //}
 
         function handleExistingAuthSuccess(result) {
             if (result.valid) {
@@ -724,34 +701,28 @@
         }
 
         function clearStoredAuth() {
-            console.log('Clearing stored authentication data...');
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('userEmail');
-            localStorage.removeItem('userRole');
-            sessionStorage.removeItem('authToken');
-            sessionStorage.removeItem('userEmail');
-            sessionStorage.removeItem('userRole');
-            
-            // Clear URL hash
-            window.history.replaceState(null, '', window.location.pathname);
-        }
+        console.log('Clearing stored authentication data...');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('userRole');
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('userEmail');
+        sessionStorage.removeItem('userRole');
+    }
 
-        // Debug function to manually clear sessions (call from console)
-        function debugClearSession() {
-            console.log('=== DEBUG: Clearing all session data ===');
-            clearStoredAuth();
-            console.log('Session data cleared. Reloading page...');
-            window.location.reload();
-        }
+    // Make debug function available globally
+    window.debugClearSession = function() {
+        console.log('=== DEBUG: Clearing all session data ===');
+        clearStoredAuth();
+        console.log('Session data cleared. Reloading page...');
+        window.location.reload();
+    };
 
-        // Make debug function available globally
-        window.debugClearSession = debugClearSession;
+    // Check existing authentication on page load
+    checkExistingAuth();
 
-        // Check existing authentication on page load
-        // Only if we're not being redirected back after a successful login
-        if (!window.location.hash.includes('auth=')) {
-            checkExistingAuth();
-        }
-    </script>
+  })(); // Close the IIFE wrapper
+  </script>
 </body>
+
 </html>

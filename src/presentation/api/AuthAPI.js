@@ -1,4 +1,4 @@
-/**
+  /**
  * AuthAPI.js
  * Backend API endpoints for authentication pages
  * Provides server-side functions for login.html and register.html
@@ -11,12 +11,11 @@
  * @param {Object} options - Authentication options (password for manual login)
  * @returns {Object} Authentication result
  */
+
 function authenticateUser(email, domain, options = {}) {
   try {
     Logger.log(`[AuthAPI] Authentication request for ${email}`);
     
-    // Create a REAL session using SessionManager synchronously
-    // Note: We'll use a synchronous approach for google.script.run compatibility
     const sessionId = "sess_test_" + Date.now();
     const sessionData = {
       sessionId: sessionId,
@@ -27,15 +26,11 @@ function authenticateUser(email, domain, options = {}) {
       lastAccessedAt: new Date().toISOString()
     };
     
-    // Store session directly in SessionManager's internal storage
-    // This bypasses the async createSession method
     const authService = initializeAuthService();
     const sessionManager = authService._sessionManager;
     if (sessionManager._sessions) {
       sessionManager._sessions.set(sessionId, sessionData);
       Logger.log(`[AuthAPI] Real session stored directly: ${sessionId}`);
-    } else {
-      Logger.log(`[AuthAPI] WARNING: SessionManager._sessions not available, using fallback`);
     }
     
     const mockResult = {
@@ -53,7 +48,8 @@ function authenticateUser(email, domain, options = {}) {
         userEmail: email,
         userRole: "user",
         expiresAt: sessionData.expiresAt
-      }
+      },
+      redirectUrl: getWebAppUrl() + '?authToken=' + sessionId  // Add redirect URL
     };
     
     Logger.log(`[AuthAPI] Mock result with real session: ${JSON.stringify(mockResult)}`);
@@ -437,7 +433,7 @@ function doPost(e) {
  * Get the dashboard page content (Aris Azhar approach)
  * @returns {string} Dashboard HTML content
  */
-function getConfigDashboard() {
+/*function getConfigDashboard() {
   try {
     Logger.log('[AuthAPI] Serving dashboard page...');
     return HtmlService.createHtmlOutputFromFile('configDashboard').getContent();
@@ -445,7 +441,7 @@ function getConfigDashboard() {
     Logger.log(`[AuthAPI] Failed to serve dashboard: ${error.message}`);
     return '<html><body><h1>Error loading dashboard</h1></body></html>';
   }
-}
+}*/
 
 /**
  * Get the login page content (Aris Azhar approach)
@@ -462,66 +458,33 @@ function getLoginPage() {
 }
 function getWebAppUrl() {
   try {
-    // Get the current script ID
-    let scriptId = ScriptApp.getScriptId();
-    Logger.log(`[AuthAPI] Current script ID: ${scriptId}`);
-    
-    // Check if we're in development or production mode
-    const environment = PropertiesService.getScriptProperties().getProperty('ENVIRONMENT') || 'development';
-    Logger.log(`[AuthAPI] Environment setting: ${environment}`);
-    
-    // Auto-detect environment based on script ID if not explicitly set
-    let isDevelopment = environment === 'development';
-    
-    // If environment is 'auto', detect based on script ID
-    if (environment === 'auto') {
-      // Your test script ID
-      const testScriptId = 'AKfycbyK9o__djKQZD2FBh5zLG5VWxdt9ZEtaT8x1TRZoNQ';
-      // Your production script ID  
-      const prodScriptId = 'AKfycbyFfu7tor8_3DEwwooxahWK5FOsHrb0Xodv4YBzl6_C58msZx4ilmaJGY_Rlwo6snU';
-      
-      if (scriptId === testScriptId) {
-        isDevelopment = true;
-        Logger.log(`[AuthAPI] Auto-detected: development (test script ID)`);
-      } else if (scriptId === prodScriptId) {
-        isDevelopment = false;
-        Logger.log(`[AuthAPI] Auto-detected: production (prod script ID)`);
-      } else {
-        Logger.log(`[AuthAPI] Unknown script ID, defaulting to development`);
-        isDevelopment = true;
-      }
-    }
-    
-    // CRITICAL FIX: Use the correct script ID for redirects
-    // If we're in development mode, always use the test script ID
-    if (isDevelopment) {
-      scriptId = 'AKfycbyK9o__djKQZD2FBh5zLG5VWxdt9ZEtaT8x1TRZoNQ';
-      Logger.log(`[AuthAPI] Using test script ID for redirect: ${scriptId}`);
-    } else {
-      scriptId = 'AKfycbyFfu7tor8_3DEwwooxahWK5FOsHrb0Xodv4YBzl6_C58msZx4ilmaJGY_Rlwo6snU';
-      Logger.log(`[AuthAPI] Using production script ID for redirect: ${scriptId}`);
-    }
-    
-    let webAppUrl;
-    if (isDevelopment) {
-      // Development URL uses /dev
-      webAppUrl = `https://script.google.com/macros/s/${scriptId}/dev`;
-    } else {
-      // Production URL uses /exec
-      webAppUrl = `https://script.google.com/macros/s/${scriptId}/exec`;
-    }
-    
-    Logger.log(`[AuthAPI] Final environment: ${isDevelopment ? 'development' : 'production'}`);
-    Logger.log(`[AuthAPI] Final web app URL: ${webAppUrl}`);
-    
+    // Use ScriptApp to get the actual deployed URL
+    const webAppUrl = ScriptApp.getService().getUrl();
+    Logger.log(`[AuthAPI] Web app URL: ${webAppUrl}`);
     return webAppUrl;
-    
   } catch (error) {
     Logger.log(`[AuthAPI] Failed to get web app URL: ${error.message}`);
-    // Fallback: return development URL for testing
-    return 'https://script.google.com/macros/s/AKfycbyK9o__djKQZD2FBh5zLG5VWxdt9ZEtaT8x1TRZoNQ/dev';
+    // Fallback to manual URL construction
+    const scriptId = ScriptApp.getScriptId();
+    return `https://script.google.com/macros/s/${scriptId}/exec`;
   }
 }
+
+function checkDeployment() {
+  const url = ScriptApp.getService().getUrl();
+  Logger.log('Deployed Web App URL: ' + url);
+  Logger.log('Script ID: ' + ScriptApp.getScriptId());
+  
+  // Test the deployment
+  if (url) {
+    Logger.log('✅ Web app is deployed');
+    return { success: true, url: url };
+  } else {
+    Logger.log('❌ Web app is NOT deployed');
+    return { success: false, message: 'Please deploy the web app first' };
+  }
+}
+    
 
 /**
  * Set environment for web app URL detection
