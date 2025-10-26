@@ -15,21 +15,26 @@ function doGet(e) {
     Logger.log('[doGet] ========== START ==========');
     Logger.log('[doGet] Parameters: ' + JSON.stringify(e.parameter || {}));
     
-    // Register all routes
-    Route.path("login", loadLoginPage);
-    Route.path("register", loadRegisterPage);
-    Route.path("dashboard", loadDashboardPage);
-    Route.path("test", loadTestPage);
-    
-    // Check if we have a route parameter
+    // Get route parameter
     const route = e.parameter.v;
+    Logger.log('[doGet] Route requested: ' + route);
     
-    if (route && Route[route]) {
-      Logger.log('[doGet] Serving route: ' + route);
-      return Route[route]();
-    } else {
-      Logger.log('[doGet] No route specified, serving register page (login disabled)');
+    // Route to appropriate page
+    if (route === 'login' || !route) {
+      Logger.log('[doGet] Serving login page');
+      return loadLoginPage();
+    } else if (route === 'register') {
+      Logger.log('[doGet] Serving register page');
       return loadRegisterPage();
+    } else if (route === 'dashboard') {
+      Logger.log('[doGet] Serving dashboard page');
+      return loadDashboardPage();
+    } else if (route === 'test') {
+      Logger.log('[doGet] Serving test page');
+      return loadTestPage();
+    } else {
+      Logger.log('[doGet] Unknown route, serving login page');
+      return loadLoginPage();
     }
     
   } catch (error) {

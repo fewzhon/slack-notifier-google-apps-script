@@ -49,7 +49,8 @@ function authenticateUser(email, domain, options = {}) {
         userRole: "user",
         expiresAt: sessionData.expiresAt
       },
-      redirectUrl: getWebAppUrl() + '?authToken=' + sessionId  // Add redirect URL
+      // Don't send redirectUrl - let client handle it
+      sessionToken: sessionId  // Send token separately
     };
     
     Logger.log(`[AuthAPI] Mock result with real session: ${JSON.stringify(mockResult)}`);
@@ -562,31 +563,4 @@ async function testAuthAPI() {
   }
 }
 
-// Logout function for server-side session cleanup
-function logoutUser() {
-  try {
-    Logger.log('[AuthAPI] Logout request received');
-    
-    // Get the current session from the request context
-    // In Apps Script, we can't easily get the current session ID from the client
-    // So we'll rely on client-side cleanup primarily
-    
-    // Clear any server-side session data if we had it stored
-    // For now, we'll just log the logout attempt
-    Logger.log('[AuthAPI] User logout processed - client-side cleanup will handle session removal');
-    
-    return {
-      success: true,
-      message: 'Logout successful',
-      timestamp: new Date().toISOString()
-    };
-    
-  } catch (error) {
-    Logger.log(`[AuthAPI] Logout error: ${error.message}`);
-    return {
-      success: false,
-      error: error.message,
-      message: 'Logout failed'
-    };
-  }
-}
+

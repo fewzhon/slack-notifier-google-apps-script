@@ -429,5 +429,6 @@ function getRecentActivity(userEmail) {
 
 function logoutUser(sessionId) {
   const dashboardAPI = new DashboardAPI();
-  return dashboardAPI.logoutUser(sessionId);
+  // Pass sessionId even if undefined - let the method handle it
+  return dashboardAPI.logoutUser(sessionId || '');
 }

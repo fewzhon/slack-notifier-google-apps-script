@@ -5,97 +5,76 @@
    */
 
   // ===== DASHBOARD AUTHENTICATION =====
-  function initializeDashboardAuth() {
-    console.log('=== DASHBOARD AUTHENTICATION INITIALIZING ===');
+function initializeDashboardAuth() {
+    console.log('=== DASHBOARD AUTHENTICATION CHECK ===');
 
-    // Single URLSearchParams declaration
     const urlParams = new URLSearchParams(window.location.search);
     let authToken = urlParams.get('authToken');
 
-    console.log('Auth token from URL:', authToken ? 'YES' : 'NO');
-
-    // If found in URL, store it in sessionStorage
+    // If token in URL, store and clean URL
     if (authToken) {
-      console.log('Auth token found in URL, storing in session...');
-      sessionStorage.setItem('authToken', authToken);
-      console.log('Dashboard: Auth token stored successfully');
-      return true;
+        console.log('Auth token from URL - storing');
+        sessionStorage.setItem('authToken', authToken);
+        
+        // Clean URL without reloading
+        const cleanUrl = window.location.origin + window.location.pathname + '?v=dashboard';
+        window.history.replaceState({}, '', cleanUrl);
+        return true;
     }
 
-    // Check sessionStorage
+    // Check session storage
     authToken = sessionStorage.getItem('authToken');
 
     if (!authToken) {
-      // Fall back to localStorage
-      authToken = localStorage.getItem('authToken');
-      if (authToken) {
-        sessionStorage.setItem('authToken', authToken);
-      }
+        console.log('No auth token - redirecting to login');
+        window.location.replace('?v=login');
+        return false;
     }
 
-    console.log('Dashboard: Final auth token check:', authToken ? 'YES' : 'NO');
-
-    if (!authToken) {
-      console.log('Dashboard: No auth token found, redirecting to login');
-      redirectToLogin('No authentication token found');
-      return false;
-    }
-
-    console.log('Dashboard: Auth token found, showing dashboard');
+    console.log('Auth token found - dashboard authorized');
     return true;
-  }
+}
 
-  function redirectToLogin(reason) {
+function redirectToLogin(reason) {
     sessionStorage.clear();
     localStorage.clear();
     console.log('Redirecting to login:', reason);
-
-    // Clean URL - remove query parameters
-    const baseUrl = window.location.origin + window.location.pathname;
-    window.location.href = baseUrl;
-  }
+    
+    window.location.replace('?v=login');
+}
 
   // ===== SIGN OUT FUNCTION =====
-  function signOut() {
-    console.log('=== SIGN OUT FUNCTION CALLED ===');
-    console.log('Sign out initiated...');
-
-    // Show loading state
+function signOut() {
+    console.log('=== SIGN OUT INITIATED ===');
+    
     const signOutBtn = document.querySelector('.dashboard-sign-out-btn');
     if (signOutBtn) {
-      signOutBtn.disabled = true;
-      signOutBtn.innerHTML = '🔄 Signing Out...';
-      console.log('Button disabled and loading state shown');
-    } else {
-      console.error('Sign out button not found!');
+        signOutBtn.disabled = true;
+        signOutBtn.innerHTML = '🔄 Signing Out...';
     }
 
-    // Call server-side logout using proper GAS pattern
-    google.script.run
-      .withSuccessHandler(function (result) {
-        console.log('=== SERVER-SIDE LOGOUT SUCCESS ===');
-        console.log('Server response:', result);
+    // Get session token before clearing
+    const sessionToken = sessionStorage.getItem('authToken');
+    
+    // Clear client-side session
+    sessionStorage.clear();
+    localStorage.clear();
+    
+    console.log('Session cleared, redirecting to login...');
 
-        // Clear client-side session data
-        sessionStorage.clear();
-        localStorage.clear();
-
-        // Redirect to login page using relative URL
-        console.log('Redirecting to login page...');
-        window.location.href = '?v=login';
-      })
-      .withFailureHandler(function (error) {
-        console.log('=== SERVER-SIDE LOGOUT FAILED ===');
-        console.log('Server error:', error);
-        console.log('Proceeding with client-side logout...');
-
-        // Fallback: Clear client-side data and redirect anyway
-        sessionStorage.clear();
-        localStorage.clear();
-        window.location.href = '?v=login';
-      })
-      .logoutUser(); // Call the simple logoutUser() function from AuthAPI.js
-  }
+    // Call server logout with sessionId
+    if (sessionToken) {
+        try {
+            google.script.run.logoutUser(sessionToken);
+        } catch (e) {
+            console.log('Server logout call failed:', e);
+        }
+    }
+    
+    // Redirect immediately
+    console.log('redirecting...');
+    window.location.replace('?v=login');
+}
 
   // ===== DASHBOARD INITIALIZATION =====
   function initializeDashboard() {
@@ -343,26 +322,25 @@
 
     categoriesContainer.innerHTML = Object.keys(categories).map(categoryKey => {
       const category = categories[categoryKey];
-      return
-      '<div class="dashboard-card" onclick="openCategory(\'' + categoryKey + '\')">' +
-        '<div class="dashboard-card-header">' +
-        '<div class="dashboard-card-icon">' + category.icon + '</div>' +
-        '<div class="dashboard-card-title">' + category.name + '</div>' +
-        '</div>' +
-        '<div class="dashboard-card-description">' + category.description + '</div>' +
-        '<div class="dashboard-card-status">' +
-        '<div class="dashboard-status-indicator dashboard-status-active"></div>' +
-        '<span>' + (category.settings ? category.settings.length : 0) + ' settings</span>' +
-        '</div>' +
-        '<div class="dashboard-card-actions">' +
-        '<button class="btn btn-primary" onclick="event.stopPropagation(); openCategory(\'' + categoryKey + '\')">' +
-        'Configure' +
-        '</button>' +
-        '<button class="btn btn-secondary" onclick="event.stopPropagation(); testCategory(\'' + categoryKey + '\')">' +
-        'Test' +
-        '</button>' +
-        '</div>' +
-        '</div>';
+      return '<div class="dashboard-card" onclick="openCategory(\'' + categoryKey + '\')">' +
+          '<div class="dashboard-card-header">' +
+          '<div class="dashboard-card-icon">' + category.icon + '</div>' +
+          '<div class="dashboard-card-title">' + category.name + '</div>' +
+          '</div>' +
+          '<div class="dashboard-card-description">' + category.description + '</div>' +
+          '<div class="dashboard-card-status">' +
+          '<div class="dashboard-status-indicator dashboard-status-active"></div>' +
+          '<span>' + (category.settings ? category.settings.length : 0) + ' settings</span>' +
+          '</div>' +
+          '<div class="dashboard-card-actions">' +
+          '<button class="btn btn-primary" onclick="event.stopPropagation(); openCategory(\'' + categoryKey + '\')">' +
+          'Configure' +
+          '</button>' +
+          '<button class="btn btn-secondary" onclick="event.stopPropagation(); testCategory(\'' + categoryKey + '\')">' +
+          'Test' +
+          '</button>' +
+          '</div>' +
+          '</div>';
     }).join('');
   }
 

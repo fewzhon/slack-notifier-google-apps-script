@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GDrive Slack Notifier - Login</title>
   <!-- Unified Authentication Styles -->
-  <?!= include('assets/css/auth-styles.html'); ?>
+  <?!= include('auth-styles.html'); ?>
 </head>
 
 <body>
@@ -90,383 +90,226 @@
   </div>
 
   <script>
-    (function() {
-    // Single check for authToken - exit early if present
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('authToken')) {
-        console.log('Dashboard loading, skipping login scripts');
+// Global state
+let currentTab = 'sso';
+let isAuthenticating = false;
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    initializePage();
+    checkExistingAuth();
+});
+
+function initializePage() {
+    // Add input event listeners
+    document.getElementById('sso-email').addEventListener('input', handleSSOEmailChange);
+    document.getElementById('manual-email').addEventListener('input', clearErrors);
+    document.getElementById('manual-password').addEventListener('input', clearErrors);
+
+    // Add enter key support
+    document.getElementById('sso-email').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') handleSSOLogin();
+    });
+
+    document.getElementById('manual-email').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') handleManualLogin();
+    });
+
+    document.getElementById('manual-password').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') handleManualLogin();
+    });
+}
+
+function switchTab(tab) {
+    if (isAuthenticating) return;
+
+    currentTab = tab;
+    
+    // Update tab buttons
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    // Update forms
+    document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+    document.getElementById(tab + '-form').classList.add('active');
+
+    clearAllMessages();
+}
+
+function handleSSOEmailChange() {
+    const email = document.getElementById('sso-email').value;
+    const domainInfo = document.getElementById('sso-domain-info');
+    
+    if (email && email.includes('@')) {
+        const domain = email.split('@')[1];
+        checkDomainApproval(domain).then(isApproved => {
+            if (isApproved) {
+                domainInfo.textContent = '✅ This domain is approved for SSO access';
+                domainInfo.classList.add('show');
+            } else {
+                domainInfo.textContent = '⚠️ This domain requires manual registration';
+                domainInfo.classList.add('show');
+            }
+        });
+    } else {
+        domainInfo.classList.remove('show');
+    }
+}
+
+async function checkDomainApproval(domain) {
+    try {
+        const approvedDomains = ['iress.com', 'iress.au', 'company.com'];
+        return approvedDomains.includes(domain.toLowerCase());
+    } catch (error) {
+        console.error('Domain check failed:', error);
+        return false;
+    }
+}
+
+function handleSSOLogin() {
+    if (isAuthenticating) return;
+
+    const email = document.getElementById('sso-email').value.trim();
+    
+    if (!email || !email.includes('@')) {
+        showError('sso-email', 'Please enter a valid email address');
         return;
     }
-        // Global state
-        let currentTab = 'sso';
-        let isAuthenticating = false;
 
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            initializePage();
-        });
+    isAuthenticating = true;
+    showLoading('sso');
 
-        function initializePage() {
-            // Add input event listeners
-            document.getElementById('sso-email').addEventListener('input', handleSSOEmailChange);
-            document.getElementById('manual-email').addEventListener('input', clearErrors);
-            document.getElementById('manual-password').addEventListener('input', clearErrors);
+    const domain = email.split('@')[1];
+    
+    google.script.run
+        .withSuccessHandler(handleAuthSuccess)
+        .withFailureHandler(handleAuthError)
+        .authenticateUser(email, domain);
+}
 
-            // Add enter key support
-            document.getElementById('sso-email').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') handleSSOLogin();
-            });
+function handleManualLogin() {
+    if (isAuthenticating) return;
 
-            document.getElementById('manual-email').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') handleManualLogin();
-            });
+    const email = document.getElementById('manual-email').value.trim();
+    const password = document.getElementById('manual-password').value;
 
-            document.getElementById('manual-password').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') handleManualLogin();
-            });
-        }
-
-        
-
-        function switchTab(tab) {
-            if (isAuthenticating) return;
-
-            currentTab = tab;
-            
-            // Update tab buttons
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
-            // Update forms
-            document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
-            document.getElementById(tab + '-form').classList.add('active');
-
-            // Clear all messages and errors
-            clearAllMessages();
-        }
-
-        function handleSSOEmailChange() {
-            const email = document.getElementById('sso-email').value;
-            const domainInfo = document.getElementById('sso-domain-info');
-            
-            if (email && email.includes('@')) {
-                const domain = email.split('@')[1];
-                // Check if domain is approved (this would call the backend)
-                checkDomainApproval(domain).then(isApproved => {
-                    if (isApproved) {
-                        domainInfo.textContent = '✅ This domain is approved for SSO access';
-                        domainInfo.classList.add('show');
-                    } else {
-                        domainInfo.textContent = '⚠️ This domain requires manual registration';
-                        domainInfo.classList.add('show');
-                    }
-                });
-            } else {
-                domainInfo.classList.remove('show');
-            }
-        }
-
-        async function checkDomainApproval(domain) {
-            try {
-                // This would call the backend to check domain approval
-                // For now, we'll simulate with known domains
-                const approvedDomains = ['iress.com', 'iress.au', 'company.com'];
-                return approvedDomains.includes(domain.toLowerCase());
-            } catch (error) {
-                console.error('Domain check failed:', error);
-                return false;
-            }
-        }
-
-        async function handleSSOLogin() {
-            if (isAuthenticating) return;
-
-            const email = document.getElementById('sso-email').value.trim();
-            
-            if (!email || !email.includes('@')) {
-                showError('sso-email', 'Please enter a valid email address');
-                return;
-            }
-
-            isAuthenticating = true;
-            showLoading('sso');
-
-            try {
-                const domain = email.split('@')[1];
-                
-                console.log('=== SSO LOGIN DEBUG ===');
-                console.log('Email:', email);
-                console.log('Domain:', domain);
-                console.log('Calling authenticateUser...');
-                console.log('========================');
-                
-                // Call the backend authentication service
-                const result = await google.script.run
-                    .withSuccessHandler(handleSSOSuccess)
-                    .withFailureHandler(handleSSOError)
-                    .authenticateUser(email, domain);
-
-            } catch (error) {
-                handleSSOError(error);
-            }
-        }
-
-        async function handleManualLogin() {
-            if (isAuthenticating) return;
-
-            const email = document.getElementById('manual-email').value.trim();
-            const password = document.getElementById('manual-password').value;
-
-            // Validate inputs
-            if (!email || !email.includes('@')) {
-                showError('manual-email', 'Please enter a valid email address');
-                return;
-            }
-
-            if (!password) {
-                showError('manual-password', 'Please enter your password');
-                return;
-            }
-
-            isAuthenticating = true;
-            showLoading('manual');
-
-            try {
-                // Call the backend authentication service
-                const result = await google.script.run
-                    .withSuccessHandler(handleManualSuccess)
-                    .withFailureHandler(handleManualError)
-                    .authenticateUser(email, email.split('@')[1], { password: password });
-
-            } catch (error) {
-                handleManualError(error);
-            }
-        }
-
-        function handleSSOSuccess(result) {
-            isAuthenticating = false;
-            hideLoading('sso');
-            
-            console.log('=== SSO SUCCESS DEBUG ===');
-            console.log('Full result:', JSON.stringify(result, null, 2));
-            
-            if (result === null || result === undefined) {
-                console.error('SSO response is null or undefined');
-                showError('sso-email', 'Authentication failed - no response from server');
-                return;
-            }
-            
-            if (result.success) {
-                showSuccess('sso');
-                const sessionToken = result.session?.sessionId || result.sessionId;
-                console.log('Session token:', sessionToken);
-                
-                // Store in sessionStorage
-                sessionStorage.setItem('authToken', sessionToken);
-                sessionStorage.setItem('userEmail', result.user.email);
-                sessionStorage.setItem('userRole', result.user.role);
-                
-                // Redirect using relative URL (like the example)
-                console.log('Redirecting to dashboard...');
-                window.location.href = '?v=dashboard';
-            } else {
-                showError('sso-email', result.message || 'SSO authentication failed');
-            }
-        }
-
-        function handleSSOError(error) {
-            isAuthenticating = false;
-            hideLoading('sso');
-            showError('sso-email', error.message || 'SSO authentication failed. Please try again.');
-        }
-
-        function handleManualSuccess(result) {
-            isAuthenticating = false;
-            hideLoading('manual');
-            
-            if (result.success) {
-                showSuccess('manual');
-                const sessionToken = result.session?.sessionId || result.sessionId;
-                
-                sessionStorage.setItem('authToken', sessionToken);
-                sessionStorage.setItem('userEmail', result.user.email);
-                sessionStorage.setItem('userRole', result.user.role);
-                
-                // Redirect using relative URL (like the example)
-                console.log('Redirecting to dashboard...');
-                window.location.href = '?v=dashboard';
-            } else {
-                showError('manual-email', result.message || 'Manual authentication failed');
-            }
-        }
-
-
-        function handleManualError(error) {
-            isAuthenticating = false;
-            hideLoading('manual');
-            showError('manual-email', error.message || 'Authentication failed. Please check your credentials.');
-        }
-
-        function showLoading(formType) {
-            document.getElementById(formType + '-loading').classList.add('show');
-            document.querySelector('#' + formType + '-form .auth-button').disabled = true;
-        }
-
-        function hideLoading(formType) {
-            document.getElementById(formType + '-loading').classList.remove('show');
-            document.querySelector('#' + formType + '-form .auth-button').disabled = false;
-        }
-
-        function showSuccess(formType) {
-            document.getElementById(formType + '-success').classList.add('show');
-        }
-
-        function showError(fieldId, message) {
-            const errorElement = document.getElementById(fieldId + '-error');
-            if (errorElement) {
-                errorElement.textContent = message;
-                errorElement.classList.add('show');
-                document.getElementById(fieldId).classList.add('error');
-            }
-        }
-
-        function clearErrors() {
-            document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
-            document.querySelectorAll('input').forEach(el => el.classList.remove('error'));
-        }
-
-        function clearAllMessages() {
-            clearErrors();
-            document.querySelectorAll('.success-message').forEach(el => el.classList.remove('show'));
-            document.querySelectorAll('.loading').forEach(el => el.classList.remove('show'));
-            document.querySelectorAll('.domain-info').forEach(el => el.classList.remove('show'));
-        }
-
-        function showRegisterForm() {
-            // Redirect to registration page
-            window.location.href = 'register.html';
-        }
-
-        function showHelp() {
-            // Show help modal or redirect to help page
-            alert('Help & Support\n\nFor assistance, please contact your system administrator or refer to the documentation.');
-        }
-
-        // Check if user is already authenticated
-        // Check if user is already authenticated
-        // Replace entire checkExistingAuth function
-        function checkExistingAuth() {
-        // No need to check urlParams again - we already exited if authToken exists
-        
-        // Skip if authenticating
-        if (isAuthenticating) {
-            console.log('Authentication in progress, skipping check');
-            return;
-        }
-        
-        // Check for existing token in storage only
-        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
-        
-        if (token) {
-            console.log('Found existing auth token, validating before redirect...');
-            
-            // Validate the token before redirecting
-            google.script.run
-                .withSuccessHandler(function(result) {
-                    if (result && result.valid) {
-                        console.log('Token valid, redirecting to dashboard...');
-                        window.location.href = window.location.origin + window.location.pathname + '?authToken=' + token;
-                    } else {
-                        console.log('Token invalid, clearing and staying on login page');
-                        clearStoredAuth();
-                    }
-                })
-                .withFailureHandler(function(error) {
-                    console.log('Token validation failed:', error);
-                    clearStoredAuth();
-                })
-                .validateSession(token);
-        }
+    if (!email || !email.includes('@')) {
+        showError('manual-email', 'Please enter a valid email address');
+        return;
     }
 
-        // Check existing authentication on page load
-        // Only if we're NOT on a dashboard page request
-        //const urlParams = new URLSearchParams(window.location.search);
-        //const page = urlParams.get('page');
-
-        //if (page !== 'dashboard' && !urlParams.get('authToken')) {
-        //    checkExistingAuth();
-        //}
-
-        function handleExistingAuthSuccess(result) {
-            if (result.valid) {
-                console.log('Existing session is valid, redirecting to dashboard...');
-                // User is already authenticated, load dashboard content directly
-                google.script.run
-                    .withSuccessHandler(function(dashboardContent) {
-                        console.log('Dashboard content loaded successfully');
-                        
-                        // Update the page content
-                        document.body.innerHTML = dashboardContent;
-                        
-                        // Update the URL to reflect dashboard state
-                        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
-                        const newUrl = window.location.origin + window.location.pathname + '?page=dashboard&auth=' + token;
-                        window.history.replaceState({page: 'dashboard'}, 'Dashboard', newUrl);
-                        console.log('URL updated to:', newUrl);
-                        
-                        // Trigger dashboard initialization
-                        if (typeof initializeDashboard === 'function') {
-                            initializeDashboard();
-                        }
-                    })
-                    .withFailureHandler(function(error) {
-                        console.error('Failed to load dashboard:', error);
-                        clearStoredAuth();
-                    })
-                    .getConfigDashboard();
-            } else {
-                console.log('Existing session is invalid');
-                clearStoredAuth();
-            }
-        }
-
-        function handleExistingAuthFailure(error) {
-            console.log('Session validation failed:', error);
-            // Clear invalid session
-            clearStoredAuth();
-        }
-
-        function clearStoredAuth() {
-        console.log('Clearing stored authentication data...');
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('userRole');
-        sessionStorage.removeItem('authToken');
-        sessionStorage.removeItem('userEmail');
-        sessionStorage.removeItem('userRole');
+    if (!password) {
+        showError('manual-password', 'Please enter your password');
+        return;
     }
 
-    // Make debug function available globally
-    window.debugClearSession = function() {
-        console.log('=== DEBUG: Clearing all session data ===');
-        clearStoredAuth();
-        console.log('Session data cleared. Reloading page...');
-        window.location.reload();
-    };
+    isAuthenticating = true;
+    showLoading('manual');
 
-    // Check existing authentication on page load
-    checkExistingAuth();
+    google.script.run
+        .withSuccessHandler(handleAuthSuccess)
+        .withFailureHandler(handleAuthError)
+        .authenticateUser(email, email.split('@')[1], { password: password });
+}
 
-    // Export functions to global scope for onclick handlers
-    window.handleSSOLogin = handleSSOLogin;
-    window.handleManualLogin = handleManualLogin;
-    window.switchTab = switchTab;
-    window.showRegisterForm = showRegisterForm;
-    window.showHelp = showHelp;
+function handleAuthSuccess(result) {
+    isAuthenticating = false;
+    hideLoading(currentTab);
+    
+    console.log('Auth result:', result);
+    
+    if (!result || !result.success) {
+        showError(currentTab + '-email', result?.message || 'Authentication failed');
+        return;
+    }
+    
+    showSuccess(currentTab);
+    
+    const sessionToken = result.session?.sessionId || result.sessionId || result.sessionToken;
+    sessionStorage.setItem('authToken', sessionToken);
+    sessionStorage.setItem('userEmail', result.user.email);
+    sessionStorage.setItem('userRole', result.user.role);
+    
+    console.log('Stored auth token:', sessionToken);
+    console.log('Redirecting to dashboard...');
+    
+    // Use relative path - works with both /dev and /exec
+    setTimeout(function() {
+        window.location.replace('?v=dashboard');
+    }, 300);
+}
 
-  })(); // Close the IIFE wrapper
-  </script>
+function handleAuthError(error) {
+    isAuthenticating = false;
+    hideLoading(currentTab);
+    showError(currentTab + '-email', error.message || 'Authentication failed. Please try again.');
+}
+
+function showLoading(formType) {
+    document.getElementById(formType + '-loading').classList.add('show');
+    document.querySelector('#' + formType + '-form .auth-button').disabled = true;
+}
+
+function hideLoading(formType) {
+    document.getElementById(formType + '-loading').classList.remove('show');
+    document.querySelector('#' + formType + '-form .auth-button').disabled = false;
+}
+
+function showSuccess(formType) {
+    document.getElementById(formType + '-success').classList.add('show');
+}
+
+function showError(fieldId, message) {
+    const errorElement = document.getElementById(fieldId + '-error');
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.classList.add('show');
+        document.getElementById(fieldId).classList.add('error');
+    }
+}
+
+function clearErrors() {
+    document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
+    document.querySelectorAll('input').forEach(el => el.classList.remove('error'));
+}
+
+function clearAllMessages() {
+    clearErrors();
+    document.querySelectorAll('.success-message').forEach(el => el.classList.remove('show'));
+    document.querySelectorAll('.loading').forEach(el => el.classList.remove('show'));
+    document.querySelectorAll('.domain-info').forEach(el => el.classList.remove('show'));
+}
+
+function showRegisterForm() {
+    window.location.replace('?v=register');
+}
+
+function showHelp() {
+    alert('Help & Support\n\nFor assistance, please contact your system administrator or refer to the documentation.');
+}
+
+function checkExistingAuth() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentRoute = urlParams.get('v');
+    
+    // Don't check if we're already on dashboard or register
+    if (currentRoute === 'dashboard' || currentRoute === 'register') {
+        return;
+    }
+    
+    const token = sessionStorage.getItem('authToken');
+    
+    if (token) {
+        console.log('Found existing token, redirecting to dashboard');
+        window.location.replace('?v=dashboard');
+    }
+}
+
+function clearStoredAuth() {
+    sessionStorage.clear();
+    localStorage.clear();
+}
+</script>
 </body>
 
 </html>
