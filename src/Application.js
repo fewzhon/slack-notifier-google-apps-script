@@ -54,7 +54,11 @@ class Application {
   async monitorDrive(options = {}) {
     await this._ensureInitialized();
     
-    const monitorUseCase = new MonitorDriveUseCase(this._dependencies);
+    // Create monitor use case with sheets adapter for logging
+    const monitorUseCase = new MonitorDriveUseCase({
+      ...this._dependencies,
+      sheetsAdapter: this._dependencies.sheetsAdapter
+    });
     return await monitorUseCase.execute(options);
   }
 
@@ -147,7 +151,7 @@ class Application {
   }
 
   /**
-   * Send daily summary to Slack
+   * Send daily summary to Slack using Block Kit format
    * @returns {Promise<Object>} Summary result
    */
   async sendDailySummary() {
@@ -156,27 +160,48 @@ class Application {
     try {
       const config = await this.getConfiguration();
       
-      // Create daily summary notification
-      const notification = new Notification({
-        type: NOTIFICATION_TYPES.DAILY_SUMMARY,
-        title: 'Daily Drive Activity Summary',
-        message: this._buildDailySummaryMessage(config),
-        channel: config.slackWebhookUrl ? '#app_refinement_preproduction-prod' : '#dev_sandbox',
-        priority: NOTIFICATION_PRIORITIES.LOW,
-        data: {
-          summaryType: 'daily',
-          timestamp: new Date(),
-          configuration: config.toObject()
-        }
+      // Create sheet adapter for aggregation
+      const sheetsAdapter = new GoogleSheetsAdapter({
+        logSheetId: config.logSheetId,
+        logger: this._dependencies.logger
       });
-
-      const result = await this._dependencies.notificationService.sendNotification(notification);
+      
+      // Create Block Kit formatter
+      const blockKitFormatter = new BlockKitFormatter({
+        logger: this._dependencies.logger
+      });
+      
+      // Get log sheet URL
+      const sheetUrl = sheetsAdapter.getLogSheetUrl();
+      
+      // Calculate yesterday's date
+      const today = new Date();
+      const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+      const dateStr = yesterday.toISOString().slice(0, 10); // YYYY-MM-DD
+      
+      // Aggregate daily changes
+      const summary = sheetsAdapter.aggregateDailyChangesFromSheet(dateStr);
+      
+      // Format using Block Kit
+      const blocks = blockKitFormatter.formatDailySummaryBlocks(summary, sheetUrl, dateStr);
+      
+      // Send using SlackWebhookClient
+      const targetChannel = config.weeklySummaryChannel || '#dev_sandbox';
+      await this._dependencies.notificationService.sendBlockMessage(blocks, targetChannel);
+      
+      // Store in Script Properties for Latest Summary panel
+      const props = PropertiesService.getScriptProperties();
+      props.setProperty('lastDailySummary', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        date: dateStr,
+        summary: summary
+      }));
       
       Logger.log('Daily summary sent successfully');
       return {
         success: true,
         message: 'Daily summary sent successfully',
-        notification: notification.toObject()
+        total: summary.total
       };
       
     } catch (error) {
@@ -186,7 +211,7 @@ class Application {
   }
 
   /**
-   * Send weekly summary to Slack
+   * Send weekly summary to Slack using Block Kit format
    * @returns {Promise<Object>} Summary result
    */
   async sendWeeklySummary() {
@@ -205,27 +230,55 @@ class Application {
         };
       }
       
-      // Create weekly summary notification
-      const notification = new Notification({
-        type: NOTIFICATION_TYPES.WEEKLY_SUMMARY,
-        title: 'Weekly Drive Activity Summary',
-        message: this._buildWeeklySummaryMessage(config),
-        channel: config.weeklySummaryChannel || '#dev_sandbox',
-        priority: NOTIFICATION_PRIORITIES.LOW,
-        data: {
-          summaryType: 'weekly',
-          timestamp: new Date(),
-          configuration: config.toObject()
-        }
+      // Create sheet adapter for aggregation
+      const sheetsAdapter = new GoogleSheetsAdapter({
+        logSheetId: config.logSheetId,
+        logger: this._dependencies.logger
       });
-
-      const result = await this._dependencies.notificationService.sendNotification(notification);
       
-      Logger.log('Weekly summary sent successfully');
+      // Create Block Kit formatter
+      const blockKitFormatter = new BlockKitFormatter({
+        logger: this._dependencies.logger
+      });
+      
+      // Get log sheet URL
+      const sheetUrl = sheetsAdapter.getLogSheetUrl();
+      
+      // Calculate previous Monday-Sunday range
+      const today = new Date();
+      const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const daysSinceMonday = currentDay === 0 ? 6 : currentDay - 1;
+      const lastSunday = new Date(today.getTime() - daysSinceMonday * 24 * 60 * 60 * 1000);
+      const lastMonday = new Date(lastSunday.getTime() - 6 * 24 * 60 * 60 * 1000);
+      
+      const startDateStr = lastMonday.toISOString().slice(0, 10);
+      const endDateStr = lastSunday.toISOString().slice(0, 10);
+      
+      Logger.log(`Weekly summary for period: ${startDateStr} to ${endDateStr}`);
+      
+      // Aggregate weekly changes
+      const summary = sheetsAdapter.aggregateWeeklyChangesFromSheet(startDateStr, endDateStr);
+      
+      // Format using Block Kit
+      const blocks = blockKitFormatter.formatWeeklySummaryBlocks(summary, sheetUrl, { start: startDateStr, end: endDateStr });
+      
+      // Send using SlackWebhookClient
+      const targetChannel = config.weeklySummaryChannel || '#dev_sandbox';
+      await this._dependencies.notificationService.sendBlockMessage(blocks, targetChannel);
+      
+      // Store in Script Properties for Latest Summary panel
+      const props = PropertiesService.getScriptProperties();
+      props.setProperty('lastWeeklySummary', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        weekRange: `${startDateStr} to ${endDateStr}`,
+        summary: summary
+      }));
+      
+      Logger.log(`Weekly summary sent to ${targetChannel}. Total changes: ${summary.total}`);
       return {
         success: true,
         message: 'Weekly summary sent successfully',
-        notification: notification.toObject()
+        total: summary.total
       };
       
     } catch (error) {
@@ -290,7 +343,7 @@ class Application {
     
     return `📊 **Daily Drive Activity Summary - ${date}**\n\n` +
            `• **Monitored Folders**: ${folders}\n` +
-           `• **Monitoring Frequency**: Every ${config.monitorFrequencyMinutes || 30} minutes\n` +
+           `• **Monitoring Schedule**: ${config.startHour}:00 - ${config.stopHour}:00 (${config.maxRunsPerDay} runs/day)\n` +
            `• **Status**: System running normally\n` +
            `• **Last Check**: ${new Date().toLocaleTimeString()}\n\n` +
            `_This is an automated daily summary from the GDrive Monitor system._`;
@@ -311,7 +364,7 @@ class Application {
     return `📈 **Weekly Drive Activity Summary**\n\n` +
            `• **Week**: ${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}\n` +
            `• **Monitored Folders**: ${folders}\n` +
-           `• **Monitoring Frequency**: Every ${config.monitorFrequencyMinutes || 30} minutes\n` +
+           `• **Monitoring Schedule**: ${config.startHour}:00 - ${config.stopHour}:00 (${config.maxRunsPerDay} runs/day)\n` +
            `• **Status**: System running normally\n` +
            `• **Weekly Summary Day**: ${this._getDayName(config.weeklySummaryDay)}\n\n` +
            `_This is an automated weekly summary from the GDrive Monitor system._`;
@@ -347,8 +400,19 @@ class Application {
       logger: logger
     });
     
+    // Get system log sheet ID from Script Properties
+    const scriptProps = PropertiesService.getScriptProperties();
+    const systemLogSheetId = scriptProps.getProperty('systemLogSheetId');
+    
     const loggingService = new GoogleSheetsLogger({
       sheetId: configuration.logSheetId,
+      systemLogSheetId: systemLogSheetId,
+      logger: logger
+    });
+
+    // Create sheets adapter for logging file changes to Artefact Change Log
+    const sheetsAdapter = new GoogleSheetsAdapter({
+      logSheetId: configuration.logSheetId,
       logger: logger
     });
 
@@ -356,7 +420,8 @@ class Application {
       fileRepository,
       notificationService,
       configRepository,
-      loggingService
+      loggingService,
+      sheetsAdapter
     };
   }
 
@@ -425,6 +490,7 @@ class ConsoleLogger {
 class GoogleSheetsLogger {
   constructor(options = {}) {
     this._sheetId = options.sheetId;
+    this._systemLogSheetId = options.systemLogSheetId; // Separate sheet for system logs
     this._logger = options.logger || new ConsoleLogger();
   }
 
@@ -444,10 +510,24 @@ class GoogleSheetsLogger {
   }
 
   _writeToSheet(level, message, context) {
-    if (!this._sheetId) return;
+    // Use system log spreadsheet ID if available, otherwise use main sheet ID
+    const targetSheetId = this._systemLogSheetId || this._sheetId;
+    
+    if (!targetSheetId) return;
     
     try {
-      const sheet = SpreadsheetApp.openById(this._sheetId).getActiveSheet();
+      const ss = SpreadsheetApp.openById(targetSheetId);
+      
+      // Use "System Logs" sheet
+      let sheet = ss.getSheetByName('System Logs');
+      
+      // Create sheet if it doesn't exist
+      if (!sheet) {
+        sheet = ss.insertSheet('System Logs');
+        // Set up headers for system logs
+        sheet.appendRow(['Timestamp', 'Level', 'Message', 'Context']);
+      }
+      
       const row = [
         new Date().toISOString(),
         level,

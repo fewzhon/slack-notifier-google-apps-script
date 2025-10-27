@@ -23,9 +23,21 @@
                     <p id="userEmail">Loading user information...</p>
                     <span class="dashboard-role-badge" id="userRole">Loading...</span>
                 </div>
-                <button onclick="signOut()" class="dashboard-sign-out-btn">
+                <!-- Sign Out Button Disabled (Authentication Disabled) -->
+                <!-- <button onclick="signOut()" class="dashboard-sign-out-btn">
                     🚪 Sign Out
-                </button>
+                </button> -->
+            </div>
+        </div>
+
+        <!-- Latest Summary -->
+        <div class="dashboard-latest-summary">
+            <h2>📋 Latest Summary</h2>
+            <div class="dashboard-summary-grid" id="latestSummary">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading latest summary...
+                </div>
             </div>
         </div>
 

@@ -33,11 +33,13 @@ class Configuration {
     // Scheduling settings
     this._startHour = params.startHour || 19;
     this._stopHour = params.stopHour || 23;
-    this._maxRunsPerDay = params.maxRunsPerDay || 4;
+    this._maxRunsPerDay = params.maxRunsPerDay || 8;
+    this._triggerMode = params.triggerMode || 'time-driven'; // 'count-driven' or 'time-driven'
     this._cron = params.cron || '';
 
     // Summary settings
-    this._weeklySummaryEnabled = params.weeklySummaryEnabled || false;
+    this._dailySummaryEnabled = params.dailySummaryEnabled || false;
+    this._weeklySummaryEnabled = params.weeklySummaryEnabled || true; // Default to weekly
     this._weeklySummaryChannel = params.weeklySummaryChannel || '#dev_uat';
     this._weeklySummaryDay = params.weeklySummaryDay || 1; // Monday
 
@@ -68,7 +70,9 @@ class Configuration {
   get startHour() { return this._startHour; }
   get stopHour() { return this._stopHour; }
   get maxRunsPerDay() { return this._maxRunsPerDay; }
+  get triggerMode() { return this._triggerMode; }
   get cron() { return this._cron; }
+  get dailySummaryEnabled() { return this._dailySummaryEnabled; }
   get weeklySummaryEnabled() { return this._weeklySummaryEnabled; }
   get weeklySummaryChannel() { return this._weeklySummaryChannel; }
   get weeklySummaryDay() { return this._weeklySummaryDay; }
@@ -276,6 +280,7 @@ class Configuration {
       stopHour: this._stopHour,
       maxRunsPerDay: this._maxRunsPerDay,
       cron: this._cron,
+      dailySummaryEnabled: this._dailySummaryEnabled,
       weeklySummaryEnabled: this._weeklySummaryEnabled,
       weeklySummaryChannel: this._weeklySummaryChannel,
       weeklySummaryDay: this._weeklySummaryDay,
@@ -312,7 +317,8 @@ class Configuration {
       startHour: 19,
       stopHour: 23,
       maxRunsPerDay: 4,
-      weeklySummaryEnabled: false,
+      dailySummaryEnabled: false,
+      weeklySummaryEnabled: true, // Default to weekly
       weeklySummaryChannel: '#dev_uat',
       weeklySummaryDay: 1,
       webhookPin: '6682',

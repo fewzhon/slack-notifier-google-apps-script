@@ -183,13 +183,19 @@ class Notification {
    * @returns {Object} Slack-compatible payload
    */
   toSlackPayload() {
+    // Use custom color for daily/weekly summaries
+    let color = this._getPriorityColor();
+    if (this._type === NOTIFICATION_TYPES.DAILY_SUMMARY || this._type === NOTIFICATION_TYPES.WEEKLY_SUMMARY) {
+      color = 'a3d9ff'; // Light blue color as requested
+    }
+    
     return {
       channel: this._channel,
       username: 'GDrive Monitor',
       icon_emoji: ':file_folder:',
       text: this._title,
       attachments: [{
-        color: this._getPriorityColor(),
+        color: color,
         fields: [{
           title: 'Message',
           value: this._message,

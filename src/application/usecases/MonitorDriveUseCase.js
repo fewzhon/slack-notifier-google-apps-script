@@ -18,6 +18,7 @@ class MonitorDriveUseCase {
    * @param {INotificationService} dependencies.notificationService - Notification service interface
    * @param {IConfigurationRepository} dependencies.configRepository - Configuration repository interface
    * @param {ILoggingService} dependencies.loggingService - Logging service interface
+   * @param {GoogleSheetsAdapter} dependencies.sheetsAdapter - Sheets adapter for logging file changes
    */
   constructor(dependencies) {
     this._validateDependencies(dependencies);
@@ -26,6 +27,7 @@ class MonitorDriveUseCase {
     this._notificationService = dependencies.notificationService;
     this._configRepository = dependencies.configRepository;
     this._loggingService = dependencies.loggingService;
+    this._sheetsAdapter = dependencies.sheetsAdapter || null;
   }
 
   /**
@@ -52,8 +54,13 @@ class MonitorDriveUseCase {
       // Execute monitoring
       const changes = await this._monitorFolders(configuration);
       
-      // Send notifications for changes
-      const notificationResults = await this._sendChangeNotifications(changes, configuration);
+      // Log changes to Artefact Change Log
+      await this._logChangesToSheet(changes);
+      
+      // IMPORTANT: Do NOT send notifications here
+      // The monitor trigger only logs changes to the sheet
+      // Notifications are sent by separate summary triggers (daily/weekly)
+      // const notificationResults = await this._sendChangeNotifications(changes, configuration);
       
       // Update scan state
       await this._updateScanState(configuration, changes);
@@ -63,13 +70,13 @@ class MonitorDriveUseCase {
       
       this._loggingService.logInfo('Drive monitoring completed successfully', {
         changesFound: changes.length,
-        notificationsSent: notificationResults.filter(r => r.success).length,
+        loggedToSheet: changes.length,
         duration: duration
       });
 
       return this._createResult(true, 'Monitoring completed successfully', startTime, {
         changesFound: changes.length,
-        notificationsSent: notificationResults.filter(r => r.success).length,
+        loggedToSheet: changes.length,
         duration: duration,
         changes: changes
       });
@@ -92,12 +99,17 @@ class MonitorDriveUseCase {
    * @returns {Promise<Object>} Validation result
    */
   async _validateMonitoringConditions(configuration, options) {
-    // Check if monitoring is active (unless forced)
-    if (!options.forceRun && !configuration.isMonitoringActive()) {
-      return {
-        canProceed: false,
-        reason: 'Outside monitoring window'
-      };
+    // NOTE: With optimized triggers (Approach 2), triggers only fire within the monitoring window
+    // So we don't need to check if monitoring is active UNLESS this is a manual/forced run
+    if (!options.forceRun) {
+      // For scheduled triggers, window check is optional (triggers only fire in window)
+      // But we keep it for manual trigger support and safety
+      if (!configuration.isMonitoringActive()) {
+        return {
+          canProceed: false,
+          reason: 'Outside monitoring window'
+        };
+      }
     }
 
     // Check if configuration is valid
@@ -386,6 +398,42 @@ class MonitorDriveUseCase {
       if (!dependencies[dep]) {
         throw new Error(`Missing required dependency: ${dep}`);
       }
+    }
+  }
+
+  /**
+   * Log changes to Artefact Change Log sheet
+   * @private
+   * @param {FileChange[]} changes - Array of file changes
+   * @returns {Promise<void>}
+   */
+  async _logChangesToSheet(changes) {
+    if (!this._sheetsAdapter) {
+      this._loggingService.logWarning('Sheets adapter not available, skipping change log to sheet');
+      return;
+    }
+
+    for (const change of changes) {
+      try {
+        this._sheetsAdapter.logFileChange({
+          timestamp: change.timestamp.toISOString(),
+          changeType: change.changeType,
+          name: change.fileName,
+          fileId: change.fileId,
+          url: `https://drive.google.com/drive/folders/${change.fileId}`,
+          parentName: change.folderName,
+          parentId: change.folderId,
+          user: change.fileOwner,
+          mimeType: change.fileType,
+          notes: ''
+        });
+      } catch (error) {
+        this._loggingService.logError(`Failed to log change for ${change.fileName}`, error);
+      }
+    }
+
+    if (changes.length > 0) {
+      this._loggingService.logInfo(`Logged ${changes.length} changes to Artefact Change Log`);
     }
   }
 

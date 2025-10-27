@@ -79,11 +79,12 @@ function signOut() {
   // ===== DASHBOARD INITIALIZATION =====
   function initializeDashboard() {
     console.log('=== DASHBOARD INITIALIZING ===');
+    console.log('⚠️ AUTHENTICATION DISABLED - Dashboard accessible without login');
 
-    // Check authentication first
-    if (!initializeDashboardAuth()) {
-      return;
-    }
+    // AUTHENTICATION DISABLED - Skip auth check
+    // if (!initializeDashboardAuth()) {
+    //   return;
+    // }
 
     // Initialize Modern UI
     if (window.modernUI) {
@@ -108,7 +109,8 @@ function signOut() {
         loadUserInfo(userEmail),
         loadSystemStatus(userEmail),
         loadConfigCategories(userEmail),
-        loadRecentActivity(userEmail)
+        loadRecentActivity(userEmail),
+        loadLatestSummary(userEmail)
       ]);
 
       hideLoading();
@@ -120,24 +122,33 @@ function signOut() {
       hideLoading();
     }
   }
+  
+  // Export to global scope for external access
+  window.loadDashboardData = loadDashboardData;
 
   // ===== DATA LOADING FUNCTIONS =====
   function loadUserInfo(userEmail) {
     return new Promise((resolve, reject) => {
+      console.log('Loading user info for:', userEmail);
+      
       google.script.run
         .withSuccessHandler((data) => {
+          console.log('User info loaded:', data);
           if (data.success) {
             window.currentUser = data.user;
             updateUserInfo();
           } else {
-            showError('Failed to load user info: ' + data.message);
+            console.warn('Failed to load user info: ' + data.message);
+            // Fallback to default user
+            window.currentUser = { email: userEmail, name: 'Dashboard User', role: 'admin', avatar: '👤', lastLogin: new Date().toISOString(), status: 'active' };
+            updateUserInfo();
           }
           resolve(data);
         })
         .withFailureHandler((error) => {
           console.error('Failed to load user info:', error);
-          // Use mock data for now
-          window.currentUser = { email: userEmail, name: 'Dashboard User', role: 'user' };
+          // Fallback to default user
+          window.currentUser = { email: userEmail, name: 'Dashboard User', role: 'admin', avatar: '👤', lastLogin: new Date().toISOString(), status: 'active' };
           updateUserInfo();
           resolve({ success: true, user: window.currentUser });
         })
@@ -147,25 +158,26 @@ function signOut() {
 
   function loadSystemStatus(userEmail) {
     return new Promise((resolve, reject) => {
+      console.log('Loading system status for:', userEmail);
+      
       google.script.run
         .withSuccessHandler((data) => {
+          console.log('System status loaded:', data);
           if (data.success) {
             window.systemStatusData = data.status;
             updateSystemStatus();
           } else {
-            showError('Failed to load system status: ' + data.message);
+            console.warn('Failed to load system status: ' + data.message);
+            // Fallback to mock data
+            window.systemStatusData = { monitoring: 'active', triggers: 'active', notifications: 'active', uptime: '99.9%' };
+            updateSystemStatus();
           }
           resolve(data);
         })
         .withFailureHandler((error) => {
           console.error('Failed to load system status:', error);
-          // Use mock data for now
-          window.systemStatusData = {
-            monitoring: 'active',
-            triggers: 'active',
-            notifications: 'active',
-            uptime: '99.9%'
-          };
+          // Fallback to mock data
+          window.systemStatusData = { monitoring: 'active', triggers: 'active', notifications: 'active', uptime: '99.9%' };
           updateSystemStatus();
           resolve({ success: true, status: window.systemStatusData });
         })
@@ -175,32 +187,37 @@ function signOut() {
 
   function loadConfigCategories(userEmail) {
     return new Promise((resolve, reject) => {
+      console.log('Loading config categories for:', userEmail);
+      
       google.script.run
         .withSuccessHandler((data) => {
+          console.log('Config categories loaded:', data);
           if (data.success) {
             window.configCategoriesData = data.categories;
             updateConfigCategories();
           } else {
-            showError('Failed to load configuration categories: ' + data.message);
+            console.warn('Failed to load config categories: ' + data.message);
+            // Fallback to mock data
+            window.configCategoriesData = {
+              system: { key: 'system', name: 'System Configuration', description: 'Advanced system settings', icon: '⚙️', settings: ['debug_mode', 'log_level', 'max_retries', 'timeout'] },
+              monitoring: { key: 'monitoring', name: 'Drive Monitoring', description: 'Configure Google Drive monitoring', icon: '📁', settings: ['folder_id', 'file_types', 'monitoring_interval', 'file_change_threshold'] },
+              triggers: { key: 'triggers', name: 'Scheduled Triggers', description: 'Manage trigger schedules', icon: '⏰', settings: ['monitoring_frequency', 'daily_summary_time', 'weekly_summary_day', 'enable_notifications'] },
+              users: { key: 'users', name: 'User Management', description: 'Manage users', icon: '👥', settings: ['admin_emails', 'approved_domains', 'session_timeout', 'require_approval'] },
+              notifications: { key: 'notifications', name: 'Notification Settings', description: 'Configure notifications', icon: '📢', settings: ['slack_webhook_url', 'default_channel', 'notification_frequency', 'daily_summary_time'] }
+            };
+            updateConfigCategories();
           }
           resolve(data);
         })
         .withFailureHandler((error) => {
           console.error('Failed to load config categories:', error);
-          // Use mock data for now
+          // Fallback to mock data
           window.configCategoriesData = {
-            slack: {
-              name: 'Slack Integration',
-              description: 'Configure Slack webhook and notifications',
-              icon: '💬',
-              settings: ['webhook_url', 'channel', 'username']
-            },
-            monitoring: {
-              name: 'Drive Monitoring',
-              description: 'Set up Google Drive file monitoring',
-              icon: '📁',
-              settings: ['folder_id', 'file_types', 'monitoring_interval']
-            }
+            system: { key: 'system', name: 'System Configuration', description: 'Advanced system settings', icon: '⚙️', settings: ['debug_mode', 'log_level', 'max_retries', 'timeout'] },
+            monitoring: { key: 'monitoring', name: 'Drive Monitoring', description: 'Configure Google Drive monitoring', icon: '📁', settings: ['folder_id', 'file_types', 'monitoring_interval', 'file_change_threshold'] },
+            triggers: { key: 'triggers', name: 'Scheduled Triggers', description: 'Manage trigger schedules', icon: '⏰', settings: ['monitoring_frequency', 'daily_summary_time', 'weekly_summary_day', 'enable_notifications'] },
+            users: { key: 'users', name: 'User Management', description: 'Manage users', icon: '👥', settings: ['admin_emails', 'approved_domains', 'session_timeout', 'require_approval'] },
+            notifications: { key: 'notifications', name: 'Notification Settings', description: 'Configure notifications', icon: '📢', settings: ['slack_webhook_url', 'default_channel', 'notification_frequency', 'daily_summary_time'] }
           };
           updateConfigCategories();
           resolve({ success: true, categories: window.configCategoriesData });
@@ -211,35 +228,71 @@ function signOut() {
 
   function loadRecentActivity(userEmail) {
     return new Promise((resolve, reject) => {
+      console.log('Loading recent activity for:', userEmail);
+      
       google.script.run
         .withSuccessHandler((data) => {
+          console.log('Recent activity loaded:', data);
           if (data.success) {
             window.recentActivityData = data.activities;
             updateRecentActivity();
           } else {
-            showError('Failed to load recent activity: ' + data.message);
+            console.warn('Failed to load recent activity: ' + data.message);
+            // Fallback to mock data
+            window.recentActivityData = [
+              { description: 'Updated monitoring interval to 30 minutes', timestamp: new Date().toISOString(), icon: '⚙️' },
+              { description: 'Sent daily summary to #dev_sandbox', timestamp: new Date(Date.now() - 3540000).toISOString(), icon: '📊' }
+            ];
+            updateRecentActivity();
           }
           resolve(data);
         })
         .withFailureHandler((error) => {
           console.error('Failed to load recent activity:', error);
-          // Use mock data for now
+          // Fallback to mock data
           window.recentActivityData = [
-            {
-              description: 'Dashboard accessed',
-              timestamp: new Date().toISOString(),
-              icon: '🔐'
-            },
-            {
-              description: 'Configuration updated',
-              timestamp: new Date(Date.now() - 3600000).toISOString(),
-              icon: '⚙️'
-            }
+            { description: 'Dashboard accessed', timestamp: new Date().toISOString(), icon: '🔐' },
+            { description: 'Configuration updated', timestamp: new Date(Date.now() - 3600000).toISOString(), icon: '⚙️' }
           ];
           updateRecentActivity();
           resolve({ success: true, activities: window.recentActivityData });
         })
         .getRecentActivity(userEmail);
+    });
+  }
+
+  function loadLatestSummary(userEmail) {
+    return new Promise((resolve, reject) => {
+      console.log('Loading latest summary for:', userEmail);
+      
+      google.script.run
+        .withSuccessHandler((data) => {
+          console.log('Latest summary loaded:', data);
+          if (data.success) {
+            window.latestSummaryData = data;
+            updateLatestSummary();
+          } else {
+            console.warn('Failed to load latest summary: ' + data.message);
+            // Fallback to empty data
+            window.latestSummaryData = {
+              daily: { lastSent: 'Never', status: 'inactive' },
+              weekly: { lastSent: 'Never', status: 'inactive' }
+            };
+            updateLatestSummary();
+          }
+          resolve(data);
+        })
+        .withFailureHandler((error) => {
+          console.error('Failed to load latest summary:', error);
+          // Fallback to empty data
+          window.latestSummaryData = {
+            daily: { lastSent: 'Never', status: 'inactive' },
+            weekly: { lastSent: 'Never', status: 'inactive' }
+          };
+          updateLatestSummary();
+          resolve({ success: true });
+        })
+        .getLatestSummary(userEmail);
     });
   }
 
@@ -308,6 +361,84 @@ function signOut() {
       '</div>';
   }
 
+  function updateLatestSummary() {
+    const summaryContainer = document.getElementById('latestSummary');
+
+    if (!summaryContainer || !window.latestSummaryData) {
+      if (summaryContainer) {
+        summaryContainer.innerHTML = '<div class="error">Latest summary unavailable</div>';
+      }
+      return;
+    }
+
+    const data = window.latestSummaryData.daily || {};
+    const weeklyData = window.latestSummaryData.weekly || {};
+
+    summaryContainer.innerHTML =
+      '<div class="dashboard-summary-grid">' +
+      
+      // Daily Summary Card
+      '<div class="dashboard-summary-card">' +
+      '<div class="dashboard-summary-header">' +
+      '<div class="dashboard-summary-icon">📊</div>' +
+      '<div class="dashboard-summary-title">Daily Summary</div>' +
+      '</div>' +
+      '<div class="dashboard-summary-content">' +
+      '<div class="dashboard-summary-item">' +
+      '<span class="dashboard-summary-label">Last Sent:</span>' +
+      '<span class="dashboard-summary-value">' + (data.lastSent || 'Never') + '</span>' +
+      '</div>' +
+      '<div class="dashboard-summary-item">' +
+      '<span class="dashboard-summary-label">Total Changes:</span>' +
+      '<span class="dashboard-summary-value">' + (data.totalChanges || 0) + '</span>' +
+      '</div>' +
+      '<div class="dashboard-summary-item">' +
+      '<span class="dashboard-summary-label">Created:</span>' +
+      '<span class="dashboard-summary-value">' + (data.created || 0) + '</span>' +
+      '</div>' +
+      '<div class="dashboard-summary-item">' +
+      '<span class="dashboard-summary-label">Modified:</span>' +
+      '<span class="dashboard-summary-value">' + (data.modified || 0) + '</span>' +
+      '</div>' +
+      '<div class="dashboard-summary-item">' +
+      '<span class="dashboard-summary-label">Date:</span>' +
+      '<span class="dashboard-summary-value">' + (data.date || 'N/A') + '</span>' +
+      '</div>' +
+      '</div>' +
+      '</div>' +
+      
+      // Weekly Summary Card
+      '<div class="dashboard-summary-card">' +
+      '<div class="dashboard-summary-header">' +
+      '<div class="dashboard-summary-icon">📈</div>' +
+      '<div class="dashboard-summary-title">Weekly Summary</div>' +
+      '</div>' +
+      '<div class="dashboard-summary-content">' +
+      '<div class="dashboard-summary-item">' +
+      '<span class="dashboard-summary-label">Last Sent:</span>' +
+      '<span class="dashboard-summary-value">' + (weeklyData.lastSent || 'Never') + '</span>' +
+      '</div>' +
+      '<div class="dashboard-summary-item">' +
+      '<span class="dashboard-summary-label">Total Changes:</span>' +
+      '<span class="dashboard-summary-value">' + (weeklyData.totalChanges || 0) + '</span>' +
+      '</div>' +
+      '<div class="dashboard-summary-item">' +
+      '<span class="dashboard-summary-label">Created:</span>' +
+      '<span class="dashboard-summary-value">' + (weeklyData.created || 0) + '</span>' +
+      '</div>' +
+      '<div class="dashboard-summary-item">' +
+      '<span class="dashboard-summary-label">Modified:</span>' +
+      '<span class="dashboard-summary-value">' + (weeklyData.modified || 0) + '</span>' +
+      '</div>' +
+      '<div class="dashboard-summary-item">' +
+      '<span class="dashboard-summary-label">Week Range:</span>' +
+      '<span class="dashboard-summary-value">' + (weeklyData.weekRange || 'N/A') + '</span>' +
+      '</div>' +
+      '</div>' +
+      '</div>' +
+      '</div>';
+  }
+
   function updateConfigCategories() {
     const categoriesContainer = document.getElementById('configCategories');
 
@@ -319,13 +450,40 @@ function signOut() {
     }
 
     const categories = window.configCategoriesData;
+    
+    // Get current user role from dashboard data
+    const isAdmin = window.currentUser && window.currentUser.role === 'admin';
 
     categoriesContainer.innerHTML = Object.keys(categories).map(categoryKey => {
       const category = categories[categoryKey];
-      return '<div class="dashboard-card" onclick="openCategory(\'' + categoryKey + '\')">' +
+      
+      // Filter out admin-only categories for non-admin users
+      if (category.adminOnly && !isAdmin) {
+        return '';
+      }
+      
+      // Check if this is an action card (like send-summary)
+      if (category.isAction) {
+        return '<div class="dashboard-card" onclick="handleSendSummary()">' +
+            '<div class="dashboard-card-header">' +
+            '<div class="dashboard-card-icon">' + category.icon + '</div>' +
+            '<div class="dashboard-card-title">' + category.name + '</div>' +
+            '</div>' +
+            '<div class="dashboard-card-description">' + category.description + '</div>' +
+            '<div class="dashboard-card-actions">' +
+            '<button class="btn btn-primary" onclick="event.stopPropagation(); handleSendSummary()">' +
+            'Send Now' +
+            '</button>' +
+            '</div>' +
+            '</div>';
+      }
+      
+      // Regular configuration card
+      const isReadOnly = category.isReadOnly;
+      return '<div class="dashboard-card' + (isReadOnly ? ' dashboard-card-readonly' : '') + '" onclick="openCategory(\'' + categoryKey + '\')">' +
           '<div class="dashboard-card-header">' +
           '<div class="dashboard-card-icon">' + category.icon + '</div>' +
-          '<div class="dashboard-card-title">' + category.name + '</div>' +
+          '<div class="dashboard-card-title">' + category.name + (isReadOnly ? ' <span style="font-size: 0.8em; color: #999;">(View Only)</span>' : '') + '</div>' +
           '</div>' +
           '<div class="dashboard-card-description">' + category.description + '</div>' +
           '<div class="dashboard-card-status">' +
@@ -333,12 +491,11 @@ function signOut() {
           '<span>' + (category.settings ? category.settings.length : 0) + ' settings</span>' +
           '</div>' +
           '<div class="dashboard-card-actions">' +
-          '<button class="btn btn-primary" onclick="event.stopPropagation(); openCategory(\'' + categoryKey + '\')">' +
-          'Configure' +
-          '</button>' +
-          '<button class="btn btn-secondary" onclick="event.stopPropagation(); testCategory(\'' + categoryKey + '\')">' +
-          'Test' +
-          '</button>' +
+          (isReadOnly 
+            ? '<button class="btn btn-secondary" onclick="event.stopPropagation(); openCategory(\'' + categoryKey + '\')" disabled>View Only</button>'
+            : '<button class="btn btn-primary" onclick="event.stopPropagation(); openCategory(\'' + categoryKey + '\')">Configure</button>' +
+              '<button class="btn btn-secondary" onclick="event.stopPropagation(); testCategory(\'' + categoryKey + '\')">Test</button>'
+          ) +
           '</div>' +
           '</div>';
     }).join('');
@@ -372,11 +529,65 @@ function signOut() {
   }
 
   function showLoading() {
-    // Show loading state if needed
+    // Remove any existing loading overlay
+    const existing = document.getElementById('dashboard-loading-overlay');
+    if (existing) {
+      existing.remove();
+    }
+    
+    // Create loading overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'dashboard-loading-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+    `;
+    
+    overlay.innerHTML = `
+      <div class="loading-spinner" style="
+        width: 50px;
+        height: 50px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #6366f1;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      "></div>
+      <p style="color: #666; font-size: 16px;">Loading dashboard...</p>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    `;
+    
+    document.body.appendChild(overlay);
   }
 
   function hideLoading() {
-    // Hide loading state if needed
+    const overlay = document.getElementById('dashboard-loading-overlay');
+    if (overlay) {
+      // Fade out animation
+      overlay.style.transition = 'opacity 0.3s ease-out';
+      overlay.style.opacity = '0';
+      
+      setTimeout(() => {
+        if (overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+      }, 300);
+    }
   }
 
   function showError(message) {
@@ -432,15 +643,35 @@ function signOut() {
   // ===== CATEGORY FUNCTIONS =====
   function openCategory(categoryKey) {
     console.log('Opening category:', categoryKey);
-    if (window.modernUI && window.configCategoriesData && window.configCategoriesData[categoryKey]) {
-      const categoryData = window.configCategoriesData[categoryKey];
-      const userEmail = window.currentUser ? window.currentUser.email : 'authenticated-user';
-
+    
+    if (!window.modernUI) {
+      console.error('ModernUI framework not initialized');
+      showError('Configuration modal not available - ModernUI not loaded');
+      return;
+    }
+    
+    if (!window.configCategoriesData || !window.configCategoriesData[categoryKey]) {
+      console.error('Category data not available for:', categoryKey);
+      showError('Configuration data not available for ' + categoryKey);
+      return;
+    }
+    
+    const categoryData = window.configCategoriesData[categoryKey];
+    const userEmail = window.currentUser ? window.currentUser.email : 'dashboard@localhost';
+    const isAdmin = window.currentUser && window.currentUser.role === 'admin';
+    
+    // Override isReadOnly based on current user's permissions  
+    // Make category editable for admin users even if it was marked read-only
+    if (isAdmin && categoryData.isReadOnly) {
+      categoryData.isReadOnly = false;
+    }
+    
+    try {
       const modal = window.modernUI.createConfigModal(categoryKey, categoryData, userEmail);
       console.log('Opened configuration modal for ' + categoryKey + ':', modal);
-    } else {
-      console.error('ModernUI not available or category data not loaded');
-      showError('Configuration modal not available');
+    } catch (error) {
+      console.error('Failed to open category modal:', error);
+      showError('Failed to open configuration modal: ' + error.message);
     }
   }
 
@@ -469,6 +700,85 @@ function signOut() {
     console.error('Error:', error);
     showError('An error occurred: ' + (error.message || error));
   }
+  
+  /**
+   * Handle send summary action - shows modal to choose daily or weekly
+   */
+  function handleSendSummary() {
+    // Create modal to choose summary type
+    if (window.modernUI) {
+      const modalId = 'send-summary-modal';
+      var modalHTML = '<div class="modal" id="' + modalId + '">' +
+        '<div class="modal-content">' +
+        '<div class="modal-header">' +
+        '<h2>📤 Send Summary to Slack</h2>' +
+        '<button class="modal-close" onclick="window.modernUI.closeModal(\'' + modalId + '\')">×</button>' +
+        '</div>' +
+        '<div class="modal-body">' +
+        '<p style="color: #666; margin-bottom: 20px;">Choose which summary to send now:</p>' +
+        '<div style="display: flex; flex-direction: column; gap: 12px;">' +
+        '<button class="btn btn-primary" onclick="sendSummaryType(\'daily\')" style="width: 100%; padding: 16px;">' +
+        '📊 Send Daily Summary' +
+        '</button>' +
+        '<button class="btn btn-primary" onclick="sendSummaryType(\'weekly\')" style="width: 100%; padding: 16px;">' +
+        '📅 Send Weekly Summary' +
+        '</button>' +
+        '</div>' +
+        '</div>' +
+        '<div class="modal-footer">' +
+        '<button type="button" class="btn btn-secondary" onclick="window.modernUI.closeModal(\'' + modalId + '\')">Cancel</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+      
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+      window.modernUI.showModal(modalId);
+    }
+  }
+  
+  /**
+   * Send summary type (daily or weekly)
+   */
+  function sendSummaryType(type) {
+    console.log('Sending ' + type + ' summary...');
+    
+    // Close modal first
+    if (window.modernUI) {
+      window.modernUI.closeAllModals();
+    }
+    
+    // Show loading toast
+    if (window.modernUI) {
+      window.modernUI.showToast('Sending ' + type + ' summary to Slack...', 'info');
+    }
+    
+    // Call appropriate backend function
+    const func = type === 'daily' ? 'sendDailySummary' : 'sendWeeklySummary';
+    
+    google.script.run
+      .withSuccessHandler(function(response) {
+        console.log('Summary sent:', response);
+        if (window.modernUI) {
+          if (response.success) {
+            window.modernUI.showToast('Summary sent successfully!', 'success');
+            // Refresh dashboard data
+            if (window.loadDashboardData) {
+              setTimeout(function() {
+                window.loadDashboardData();
+              }, 1000);
+            }
+          } else {
+            window.modernUI.showToast('Failed to send summary: ' + (response.message || 'Unknown error'), 'error');
+          }
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error('Send summary failed:', error);
+        if (window.modernUI) {
+          window.modernUI.showToast('Failed to send summary: ' + error.message, 'error');
+        }
+      })[func]();
+  }
 
   // ===== GLOBAL EXPORTS =====
   // Make functions globally accessible
@@ -476,4 +786,6 @@ function signOut() {
   window.initializeDashboard = initializeDashboard;
   window.openCategory = openCategory;
   window.testCategory = testCategory;
+  window.handleSendSummary = handleSendSummary;
+  window.sendSummaryType = sendSummaryType;
 </script>

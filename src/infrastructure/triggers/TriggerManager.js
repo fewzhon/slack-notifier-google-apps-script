@@ -167,7 +167,8 @@ class TriggerManager {
         .create();
       
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const schedule = `${dayNames[config.weeklySummaryDay]}s at 7:00 AM`;
+      const selectedDayName = dayNames[config.weeklySummaryDay] || 'Monday';
+      const schedule = `${selectedDayName}s at 7:00 AM`;
       
       this._logger.log(`Weekly summary trigger set for ${schedule}`);
       
@@ -197,34 +198,18 @@ class TriggerManager {
     try {
       await this._ensureApplicationInitialized();
       
-      // Get configuration for monitoring frequency
+      // Get configuration
       const config = await this._application.getConfiguration();
       
       // Remove existing monitor triggers
       await this._removeTriggersByFunction(this._triggerFunctions.MONITOR_DRIVE);
       
-      // Determine monitoring frequency from configuration
-      // Default to 30 minutes if not specified
-      const frequencyMinutes = config.monitorFrequencyMinutes || 30;
-      
-      // Validate frequency (minimum 5 minutes, maximum 60 minutes)
-      const validatedFrequency = Math.max(5, Math.min(60, frequencyMinutes));
-      
-      // Create monitor trigger
-      ScriptApp.newTrigger(this._triggerFunctions.MONITOR_DRIVE)
-        .timeBased()
-        .everyMinutes(validatedFrequency)
-        .create();
-      
-      this._logger.log(`Monitor trigger set up to run every ${validatedFrequency} minutes`);
-      
-      return {
-        success: true,
-        message: `Monitor trigger created to run every ${validatedFrequency} minutes`,
-        function: this._triggerFunctions.MONITOR_DRIVE,
-        schedule: `Every ${validatedFrequency} minutes`,
-        frequency: validatedFrequency
-      };
+      // Route to appropriate trigger setup based on mode
+      if (config.triggerMode === 'count-driven') {
+        return await this._setupCountDrivenTriggers(config);
+      } else {
+        return await this._setupTimeDrivenTriggers(config);
+      }
       
     } catch (error) {
       this._logger.error('Failed to setup monitor trigger', error);
@@ -234,6 +219,120 @@ class TriggerManager {
         error: error
       };
     }
+  }
+
+  /**
+   * Setup triggers in count-driven mode (number of runs specified)
+   * Calculates end time automatically based on runs
+   * @param {Configuration} config
+   * @returns {Promise<Object>}
+   */
+  async _setupCountDrivenTriggers(config) {
+    // Validate
+    if (config.maxRunsPerDay < 2 || config.maxRunsPerDay > 8) {
+      throw new Error('maxRunsPerDay must be between 2 and 8');
+    }
+    
+    // Calculate end hour based on runs (each run is 30 min, so 8 runs = 4 hours)
+    const hoursNeeded = config.maxRunsPerDay * 0.5;
+    const calculatedStopHour = config.startHour + hoursNeeded;
+    
+    // Validate calculated end time doesn't exceed 24
+    if (calculatedStopHour > 24) {
+      throw new Error(`Calculated end time (${calculatedStopHour}:00) exceeds 24:00. Reduce runs or adjust start time.`);
+    }
+    
+    this._logger.log(`Count-driven mode: ${config.maxRunsPerDay} runs starting at ${config.startHour}:00, ending at ${calculatedStopHour}:00`);
+    
+    // Create triggers every hour within the calculated window
+    // Since Apps Script doesn't support :30 triggers, we create hourly triggers
+    const createdTriggers = [];
+    
+    for (let hour = config.startHour; hour < Math.floor(calculatedStopHour); hour++) {
+      const trigger = ScriptApp.newTrigger(this._triggerFunctions.MONITOR_DRIVE)
+        .timeBased()
+        .atHour(hour)
+        .everyDays(1)
+        .create();
+      
+      createdTriggers.push({
+        hour: `${hour}:00`,
+        triggerId: trigger.getUniqueId()
+      });
+      this._logger.log(`Created trigger for hour ${hour}:00`);
+    }
+    
+    this._logger.log(`Created ${createdTriggers.length} monitor triggers for ${config.maxRunsPerDay} runs starting at ${config.startHour}:00`);
+    
+    return {
+      success: true,
+      message: `${config.maxRunsPerDay} runs configured starting at ${config.startHour}:00, ending at ${calculatedStopHour.toFixed(1)}:00`,
+      function: this._triggerFunctions.MONITOR_DRIVE,
+      schedule: `${config.maxRunsPerDay} runs, daily from ${config.startHour}:00`,
+      mode: 'count-driven',
+      triggersCreated: createdTriggers.length,
+      triggers: createdTriggers,
+      calculatedStopHour: Math.floor(calculatedStopHour * 10) / 10
+    };
+  }
+
+  /**
+   * Setup triggers in time-driven mode (time window specified)
+   * Calculates and reports number of runs
+   * @param {Configuration} config
+   * @returns {Promise<Object>}
+   */
+  async _setupTimeDrivenTriggers(config) {
+    // Validate monitoring window
+    if (config.startHour >= config.stopHour) {
+      throw new Error('Invalid monitoring window: startHour must be before stopHour');
+    }
+    
+    // Validate minimum window (2 hours = 2 runs minimum)
+    const windowHours = config.stopHour - config.startHour;
+    if (windowHours < 2) {
+      throw new Error('Minimum monitoring window is 2 hours (2 runs)');
+    }
+    
+    // Calculate number of runs
+    const calculatedRuns = config.stopHour - config.startHour;
+    
+    // Validate maximum runs (8 hours = 8 runs maximum)
+    if (calculatedRuns > 8) {
+      throw new Error(`Calculated ${calculatedRuns} runs exceeds maximum of 8. Reduce time window.`);
+    }
+    
+    this._logger.log(`Time-driven mode: ${config.startHour}:00 - ${config.stopHour}:00 = ${calculatedRuns} runs`);
+    
+    // Create triggers for each hour in the monitoring window
+    const createdTriggers = [];
+    
+    for (let hour = config.startHour; hour < config.stopHour; hour++) {
+      const trigger = ScriptApp.newTrigger(this._triggerFunctions.MONITOR_DRIVE)
+        .timeBased()
+        .atHour(hour)
+        .everyDays(1)
+        .create();
+      
+      createdTriggers.push({
+        hour: `${hour}:00`,
+        triggerId: trigger.getUniqueId()
+      });
+      this._logger.log(`Created trigger for hour ${hour}:00`);
+    }
+    
+    this._logger.log(`Created ${createdTriggers.length} monitor triggers for window ${config.startHour}:00 - ${config.stopHour}:00`);
+    
+    return {
+      success: true,
+      message: `Monitor triggers created for window ${config.startHour}:00 - ${config.stopHour}:00 (${calculatedRuns} runs)`,
+      function: this._triggerFunctions.MONITOR_DRIVE,
+      schedule: `Hourly, daily at ${config.startHour}:00 - ${config.stopHour}:00`,
+      mode: 'time-driven',
+      calculatedRuns: calculatedRuns,
+      triggersCreated: createdTriggers.length,
+      triggers: createdTriggers
+    };
   }
 
   /**
@@ -301,7 +400,7 @@ class TriggerManager {
           weeklySummaryEnabled: config.weeklySummaryEnabled,
           weeklySummaryDay: config.weeklySummaryDay,
           weeklySummaryChannel: config.weeklySummaryChannel,
-          monitorFrequencyMinutes: config.monitorFrequencyMinutes || 30
+          monitoringSchedule: `${config.startHour}:00 - ${config.stopHour}:00 (${config.maxRunsPerDay} runs/day)`
         }
       };
       
@@ -497,34 +596,95 @@ function monitorDriveChanges() {
  */
 
 /**
- * Setup all triggers (legacy compatibility)
- * @deprecated Use TriggerManager.setupAllTriggers() instead
+ * Setup all triggers (standalone function)
+ * This function creates its own Application instance
+ * @returns {Promise<Object>} Setup results
  */
-function setupAllTriggers() {
-  Logger.log('Using legacy setupAllTriggers - consider migrating to TriggerManager');
-  
-  const triggerManager = new TriggerManager();
-  return triggerManager.setupAllTriggers();
+async function setupAllTriggers() {
+  try {
+    Logger.log('[setupAllTriggers] Starting trigger setup...');
+    
+    // Create Application instance and initialize
+    const app = new Application();
+    await app.initialize();
+    
+    // Use Application's setupAllTriggers method (which properly initializes TriggerManager)
+    const result = await app.setupAllTriggers();
+    
+    Logger.log('[setupAllTriggers] Trigger setup complete');
+    return result;
+    
+  } catch (error) {
+    Logger.log(`[setupAllTriggers] Error: ${error.message}`);
+    return {
+      success: false,
+      message: `Failed to setup triggers: ${error.message}`,
+      error: error
+    };
+  }
 }
 
 /**
- * Remove all triggers (legacy compatibility)
- * @deprecated Use TriggerManager.removeAllTriggers() instead
+ * Remove all triggers (standalone function)
+ * @returns {Promise<Object>} Removal results
  */
-function removeAllTriggers() {
-  Logger.log('Using legacy removeAllTriggers - consider migrating to TriggerManager');
-  
-  const triggerManager = new TriggerManager();
-  return triggerManager.removeAllTriggers();
+async function removeAllTriggers() {
+  try {
+    Logger.log('[removeAllTriggers] Removing all triggers...');
+    
+    // Create Application instance and initialize
+    const app = new Application();
+    await app.initialize();
+    
+    // Use Application's removeAllTriggers method
+    const result = await app.removeAllTriggers();
+    
+    Logger.log('[removeAllTriggers] All triggers removed');
+    return result;
+    
+  } catch (error) {
+    Logger.log(`[removeAllTriggers] Error: ${error.message}`);
+    return {
+      success: false,
+      message: `Failed to remove triggers: ${error.message}`,
+      error: error
+    };
+  }
 }
 
 /**
- * Validate trigger configuration (legacy compatibility)
- * @deprecated Use TriggerManager.getTriggerStatus() instead
+ * Validate trigger configuration (standalone function)
+ * @returns {Object} Validation results
  */
 function validateTriggerConfiguration() {
-  Logger.log('Using legacy validateTriggerConfiguration - consider migrating to TriggerManager');
-  
-  const triggerManager = new TriggerManager();
-  return triggerManager.getTriggerStatus();
+  try {
+    Logger.log('[validateTriggerConfiguration] Checking trigger status...');
+    
+    // Get all project triggers
+    const triggers = ScriptApp.getProjectTriggers();
+    const status = {
+      totalTriggers: triggers.length,
+      triggers: []
+    };
+    
+    for (let i = 0; i < triggers.length; i++) {
+      const trigger = triggers[i];
+      status.triggers.push({
+        functionName: trigger.getHandlerFunction(),
+        eventType: trigger.getEventType().toString(),
+        uniqueId: trigger.getUniqueId()
+      });
+    }
+    
+    Logger.log(`[validateTriggerConfiguration] Found ${status.totalTriggers} triggers`);
+    return status;
+    
+  } catch (error) {
+    Logger.log(`[validateTriggerConfiguration] Error: ${error.message}`);
+    return {
+      success: false,
+      message: `Failed to validate configuration: ${error.message}`,
+      error: error
+    };
+  }
 }

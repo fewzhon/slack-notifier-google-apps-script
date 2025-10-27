@@ -208,13 +208,16 @@ class ScriptPropertiesRepository {
       'startHour': 'startHour',
       'stopHour': 'stopHour',
       'maxRunsPerDay': 'maxRunsPerDay',
+      'triggerMode': 'triggerMode',
       'cron': 'cron',
+      'dailySummaryEnabled': 'dailySummaryEnabled',
       'weeklySummaryEnabled': 'weeklySummaryEnabled',
       'weeklySummaryChannel': 'weeklySummaryChannel',
       'weeklySummaryDay': 'weeklySummaryDay',
       'webhookPin': 'webhookPin',
       'adminEmails': 'adminEmails',
       'logSheetId': 'logSheetId',
+      'systemLogSheetId': 'systemLogSheetId',
       'manualMode': 'manualMode',
       'scanState': 'scanState'
     };
@@ -261,13 +264,16 @@ class ScriptPropertiesRepository {
       'startHour': 'startHour',
       'stopHour': 'stopHour',
       'maxRunsPerDay': 'maxRunsPerDay',
+      'triggerMode': 'triggerMode',
       'cron': 'cron',
+      'dailySummaryEnabled': 'dailySummaryEnabled',
       'weeklySummaryEnabled': 'weeklySummaryEnabled',
       'weeklySummaryChannel': 'weeklySummaryChannel',
       'weeklySummaryDay': 'weeklySummaryDay',
       'webhookPin': 'webhookPin',
       'adminEmails': 'adminEmails',
       'logSheetId': 'logSheetId',
+      'systemLogSheetId': 'systemLogSheetId',
       'manualMode': 'manualMode',
       'scanState': 'scanState'
     };
